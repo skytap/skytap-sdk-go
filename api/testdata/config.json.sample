@@ -1,0 +1,7 @@
+{
+  "username": "SKYTAP_USERNAME",
+  "apiKey": "SKYTAP_API_KEY",
+  "templateId": "TEMPLATE_ID",
+  "vmId": "VM_ID",
+  "vpnId": "VPN_ID"
+}
