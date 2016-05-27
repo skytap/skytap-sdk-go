@@ -125,7 +125,7 @@ func (vm *VirtualMachine) WaitUntilInState(client SkytapClient, desiredStates []
  Suspends a VM.
 */
 func (vm *VirtualMachine) Suspend(client SkytapClient) (*VirtualMachine, error) {
-	log.WithFields(log.Fields{"vmId": vm.Id}).Info("Starting VM")
+	log.WithFields(log.Fields{"vmId": vm.Id}).Info("Suspending VM")
 
 	return vm.ChangeRunstate(client, RunStatePause, RunStatePause)
 }
@@ -145,6 +145,16 @@ func (vm *VirtualMachine) Start(client SkytapClient) (*VirtualMachine, error) {
 func (vm *VirtualMachine) Stop(client SkytapClient) (*VirtualMachine, error) {
 	log.WithFields(log.Fields{"vmId": vm.Id}).Info("Stopping VM")
 
+  /*
+	 Need to check current machine state as transitioning from suspended to stopped is not valid.
+	*/
+	checkVm, err := GetVirtualMachine(client, vm.Id)
+	if err != nil {
+		return nil, err
+	}
+	if checkVm.Runstate == RunStatePause {
+		return nil, fmt.Errorf("Unable to stop a suspended VM.")
+	}
 	newVm, err := vm.ChangeRunstate(client, RunStateStop, RunStateStop, RunStateStart)
 	if err != nil {
 		return newVm, err
