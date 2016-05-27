@@ -140,7 +140,7 @@ func TestAddDeleteVirtualMachine(t *testing.T) {
 	require.Equal(t, len(env2.Vms)+1, len(env5.Vms))
 
 	for _, value := range env5.Vms {
-		require.Equal(t, "Ubuntu Server 14.04 - 64-bit", value.Name)
+		require.Equal(t, "Docker Machine Template - Ubuntu Server 14.04 - 64-bit", value.Name)
 	}
 }
 
@@ -193,6 +193,14 @@ func TestManipulateVmRunstate(t *testing.T) {
 	require.Equal(t, RunStateStop, stopped.Runstate, "Should be stopped")
 
 	started, err = stopped.Start(client)
+	require.NoError(t, err, "Error starting VM")
+	require.Equal(t, RunStateStart, started.Runstate, "Should be started")
+
+	suspended, err := started.Suspend(client)
+	require.NoError(t, err, "Error suspending VM")
+	require.Equal(t, RunStatePause, suspended.Runstate, "Should be suspended")
+
+	started, err = suspended.Start(client)
 	require.NoError(t, err, "Error starting VM")
 	require.Equal(t, RunStateStart, started.Runstate, "Should be started")
 
