@@ -127,7 +127,7 @@ func (vm *VirtualMachine) WaitUntilInState(client SkytapClient, desiredStates []
 func (vm *VirtualMachine) Suspend(client SkytapClient) (*VirtualMachine, error) {
 	log.WithFields(log.Fields{"vmId": vm.Id}).Info("Starting VM")
 
-	return vm.ChangeRunstate(client, RunStateStart, RunStateStart)
+	return vm.ChangeRunstate(client, RunStatePause, RunStatePause)
 }
 
 /*
