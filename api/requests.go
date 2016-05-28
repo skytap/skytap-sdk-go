@@ -31,6 +31,7 @@ const (
 	AcceptHeaderV1 = "application/json"
 	BaseUriV1      = "https://cloud.skytap.com"
 	BaseUriV2      = "https://cloud.skytap.com/v2"
+	MetadataUri    = "http://gw/skytap"
 
 	maxRetries = 6
 )
@@ -40,6 +41,13 @@ const (
 */
 type SkytapApiError struct {
 	Error string `json:error`
+}
+
+/*
+ Skytap metadata service response.
+*/
+type SkytapMetadata struct {
+	Id  string  `json:"id"`
 }
 
 /*
@@ -243,4 +251,18 @@ func stringInSlice(a string, list []string) bool {
 		}
 	}
 	return false
+}
+
+func IsRunningInSkytap() bool {
+  skytapError := &SkytapApiError{}
+	response := &SkytapMetadata{}
+
+  client := sling.New().Client(nil)
+	req, err := sling.New().Get(MetadataUri).Request()
+	resp, err := client.Do(req, response, skytapError)
+	if err != nil {
+  	log.Errorf("Failure calling Metadata Service (resp, err), %s, %s", resp, err)
+		return false
+	}
+	return true
 }

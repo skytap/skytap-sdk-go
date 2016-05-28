@@ -230,3 +230,19 @@ func (n *Network) DetachFromVpn(client SkytapClient, envId string, vpnId string)
 	}
 	return err
 }
+
+func vpnIdPath(vpnId string) string   { return VpnPath + "/" + vpnId + ".json" }
+
+/*
+ Return an existing VPN by id.
+*/
+func GetVpn(client SkytapClient, vpnId string) (*Vpn, error) {
+	vpn := &Vpn{}
+
+	getVpn := func(s *sling.Sling) *sling.Sling {
+		return s.Get(vpnIdPath(vpnId))
+	}
+
+	_, err := RunSkytapRequest(client, true, vpn, getVpn)
+	return vpn, err
+}
