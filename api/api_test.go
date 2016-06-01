@@ -185,9 +185,9 @@ func TestManipulateVmRunstate(t *testing.T) {
 	require.NoError(t, err, "Error starting VM")
 	require.Equal(t, RunStateStart, started.Runstate, "Should be started")
 
-	time.Sleep(10 * time.Second)
+  // Need to give the VM time to startup and load VM Tools
+	time.Sleep(2 * time.Minute)
 
-	// Can't get the VM to stop, waiting for a dialog
 	stopped, err = started.Stop(client)
 	require.NoError(t, err, "Error stopping VM")
 	require.Equal(t, RunStateStop, stopped.Runstate, "Should be stopped")
