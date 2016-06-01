@@ -155,19 +155,22 @@ func (vm *VirtualMachine) Stop(client SkytapClient) (*VirtualMachine, error) {
 	if checkVm.Runstate == RunStatePause {
 		return nil, fmt.Errorf("Unable to stop a suspended VM.")
 	}
+
+	/*
+   There are cases where the call will succeed but the VM cannot be transitioned
+	 to stopped. Generally this is a case where the VM was started and immediately
+	 stopped. In this case the VMware tools didn't have an opportunity to full load.
+	 The VMware tools are required to send a graceful shutdown to the VM.
+	*/
 	newVm, err := vm.ChangeRunstate(client, RunStateStop, RunStateStop, RunStateStart)
 	if err != nil {
 		return newVm, err
 	}
-	switch newVm.Error {
-	case false:
-		return newVm, err
-	case "Shutdown cannot proceed. Please check your VM for open dialog windows.":
-		log.WithFields(log.Fields{"vmId": vm.Id, "error": newVm.Error, "state": newVm.RunstateStr()}).Warn("Unable to gracefully stop VM, will attempt to kill VM forcefully")
-		return vm.Kill(client)
-	default:
-		return nil, fmt.Errorf("Unknown error stopping VM %s, error: %+v", vm.Id, newVm.Error)
-	}
+  if newVm.Error != false {
+	  return nil, fmt.Errorf("Error stopping VM %s, error: %+v", vm.Id, newVm.Error)
+  }
+	return newVm, err
+
 }
 
 /*
@@ -290,6 +293,7 @@ func (c *VmCredential) Password() (string, error) {
 /*
  Get a VM from an existing environment.
 */
+// TODO see if we can trap the JSON unmarshall error
 func GetVirtualMachineInEnvironment(client SkytapClient, envId string, vmId string) (*VirtualMachine, error) {
 	vm := &VirtualMachine{}
 
