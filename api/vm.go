@@ -274,6 +274,14 @@ func (vm *VirtualMachine) SetName(client SkytapClient, name string) (*VirtualMac
 	return vm.ChangeAttribute(client, &NameQuery{name})
 }
 
+type ContainerHostQuery struct {
+	ContainerHost bool `url:"container_host"`
+}
+
+func (vm *VirtualMachine) SetContainerHost(client SkytapClient) (*VirtualMachine, error) {
+	return vm.ChangeAttribute(client, &ContainerHostQuery{true})
+}
+
 func (c *VmCredential) Username() (string, error) {
 	parts := strings.Split(c.Text, "/")
 	if len(parts) != 2 {
