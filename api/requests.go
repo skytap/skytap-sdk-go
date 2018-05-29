@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"encoding/json"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/dghubble/sling"
 )
@@ -52,7 +53,7 @@ type SkytapApiError struct {
  Skytap metadata service response.
 */
 type SkytapMetadata struct {
-	Id  string  `json:"id"`
+	Id string `json:"id"`
 }
 
 /*
@@ -261,14 +262,14 @@ func stringInSlice(a string, list []string) bool {
 }
 
 func IsRunningInSkytap() bool {
-  skytapError := &SkytapApiError{}
+	skytapError := &SkytapApiError{}
 	response := &SkytapMetadata{}
 
-  client := sling.New().Client(nil)
+	client := sling.New().Client(nil)
 	req, err := sling.New().Get(MetadataUri).Request()
 	resp, err := client.Do(req, response, skytapError)
 	if err != nil {
-  	log.Errorf("Failure calling Metadata Service (resp, err), %s, %s", resp, err)
+		log.Errorf("Failure calling Metadata Service (resp, err), %s, %s", resp, err)
 		return false
 	}
 	return true

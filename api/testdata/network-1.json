@@ -1,0 +1,125 @@
+{
+    "id": "99",
+    "url": "https://cloud.skytap.com/configurations/1/networks/99",
+    "name": "Default Network",
+    "network_type": "automatic",
+    "subnet": "10.0.0.0/24",
+    "subnet_addr": "10.0.0.0",
+    "subnet_size": 24,
+    "gateway": "10.0.0.254",
+    "primary_nameserver": null,
+    "secondary_nameserver": null,
+    "region": "US-West",
+    "nat_subnet": "10.0.4.0/22",
+    "nat_pool_size": 1022,
+    "nat_pool_remaining": 1021,
+    "domain": "skytap.example",
+    "vpn_attachments": [
+      {
+        "id": "99-vpn-1",
+        "connected": true,
+        "network": {
+          "id": "99",
+          "subnet": "10.0.0.0/24",
+          "network_name": "Default Network",
+          "configuration_id": "1"
+        },
+        "vpn": {
+          "id": "vpn-1",
+          "name": "VPN 1",
+          "enabled": true,
+          "nat_enabled": true,
+          "remote_subnets": "10.1.0.0/24, 10.1.1.0/24, 10.1.2.0/24, 10.1.4.0/24, 10.1.6.0/24, 10.1.8.0/24, 10.1.14.0/23, 10.1.16.0/24, 172.16.89.0/24, 192.168.0.0/16",
+          "remote_peer_ip": "1.2.3.4",
+          "can_reconnect": true,
+          "connection_type": "vpn"
+        }
+      }
+    ],
+    "tunnelable": true,
+    "tunnels": [
+      {
+        "id": "tunnel-6631420-11110493",
+        "status": "not_busy",
+        "error": null,
+        "source_network": {
+          "id": "99",
+          "url": "https://cloud.skytap.com/configurations/1/networks/99",
+          "name": "Default Network",
+          "network_type": "automatic",
+          "subnet": "10.0.0.0/24",
+          "subnet_addr": "10.0.0.0",
+          "subnet_size": 24,
+          "gateway": "10.0.0.254",
+          "primary_nameserver": null,
+          "secondary_nameserver": null,
+          "region": "US-West",
+          "nat_subnet": "10.0.4.0/22",
+          "nat_pool_size": 1022,
+          "nat_pool_remaining": 1021,
+          "domain": "skytap.example",
+          "vpn_attachments": [
+            {
+              "id": "99-vpn-1",
+              "connected": true,
+              "network": {
+                "id": "99",
+                "subnet": "10.0.0.0/24",
+                "network_name": "Default Network",
+                "configuration_id": "1"
+              },
+              "vpn": {
+                "id": "vpn-1",
+                "name": "VPN 1",
+                "enabled": true,
+                "nat_enabled": true,
+                "remote_subnets": "10.1.0.0/24, 10.1.1.0/24, 10.1.2.0/24, 10.1.4.0/24, 10.1.6.0/24, 10.1.8.0/24, 10.1.14.0/23, 10.1.16.0/24, 172.16.89.0/24, 192.168.0.0/16",
+                "remote_peer_ip": "1.2.3.4",
+                "can_reconnect": true,
+                "connection_type": "vpn"
+              }
+            }
+          ]
+        },
+        "target_network": {
+          "id": "98",
+          "url": "https://cloud.skytap.com/configurations/98/networks/98",
+          "name": "Default Network",
+          "network_type": "automatic",
+          "subnet": "10.0.0.0/24",
+          "subnet_addr": "10.0.0.0",
+          "subnet_size": 24,
+          "gateway": "10.0.0.254",
+          "primary_nameserver": null,
+          "secondary_nameserver": null,
+          "region": "US-West",
+          "nat_subnet": "10.0.4.0/22",
+          "nat_pool_size": 1022,
+          "nat_pool_remaining": 1021,
+          "domain": "skytap.example",
+          "vpn_attachments": [
+            {
+              "id": "98-vpn-1",
+              "connected": true,
+              "network": {
+                "id": "98",
+                "subnet": "10.0.0.0/24",
+                "network_name": "Default Network",
+                "configuration_id": "98"
+              },
+              "vpn": {
+                "id": "vpn-1",
+                "name": "VPN 1",
+                "enabled": true,
+                "nat_enabled": true,
+                "remote_subnets": "10.1.0.0/24, 10.1.1.0/24, 10.1.2.0/24, 10.1.4.0/24, 10.1.6.0/24, 10.1.8.0/24, 10.1.14.0/23, 10.1.16.0/24, 172.16.89.0/24, 192.168.0.0/16",
+                "remote_peer_ip": "1.2.3.4",
+                "can_reconnect": true,
+                "connection_type": "vpn"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
