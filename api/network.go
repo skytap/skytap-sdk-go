@@ -16,15 +16,17 @@ package api
 
 import (
 	"fmt"
+
 	"github.com/dghubble/sling"
 
 	log "github.com/Sirupsen/logrus"
 )
 
 const (
-	NetworkPath   = "networks"
-	InterfacePath = "interfaces"
-	VpnPath       = "vpns"
+	NetworkPath          = "networks"
+	InterfacePath        = "interfaces"
+	VpnPath              = "vpns"
+	PublishedServicePath = "services"
 )
 
 /*
@@ -53,22 +55,25 @@ type Network struct {
  Network interface inside a VM.
 */
 type NetworkInterface struct {
-	Id              string       `json:"id"`
-	Ip              string       `json:"ip"`
-	PublicIpsCount  int          `json:"public_ips_count"`
-	Hostname        string       `json:"hostname"`
-	PublicIps       []PublicIp   `json:"public_ips"`
-	NatAddresses    NatAddresses `json:"nat_addresses"`
-	Status          string       `json:"status"`
-	ExternalAddress string       `json:"external_address"`
+	Id                string             `json:"id,omitempty"`
+	Ip                string             `json:"ip,omitempty"`
+	PublicIpsCount    int                `json:"public_ips_count,omitempty"`
+	Hostname          string             `json:"hostname,omitempty"`
+	PublicIps         []PublicIp         `json:"public_ips,omitempty"`
+	NatAddresses      *NatAddresses      `json:"nat_addresses,omitempty"`
+	Status            string             `json:"status,omitempty"`
+	ExternalAddress   string             `json:"external_address,omitempty"`
+	NicType           string             `json:"nic_type,omitempty"`
+	NetworkId         string             `json:"network_id,omitempty"`
+	PublishedServices []PublishedService `json:"services,omitempty"`
 }
 
 /*
  Nat addresses stored inside network interface.
 */
 type NatAddresses struct {
-	VpnNatAddresses     []VpnNatAddress     `json:"vpn_nat_addresses"`
-	NetworkNatAddresses []NetworkNatAddress `json:"network_nat_addresses"`
+	VpnNatAddresses     []VpnNatAddress     `json:"vpn_nat_addresses,omitempty"`
+	NetworkNatAddresses []NetworkNatAddress `json:"network_nat_addresses,omitempty	"`
 }
 
 /*
@@ -145,6 +150,86 @@ type AttachVpnResult struct {
 */
 type ConnectVpnBody struct {
 	Connected bool `json:"connected"`
+}
+
+type PublishedService struct {
+	Id           string `json:"id,omitempty"`
+	InternalPort int    `json:"internal_port,omitempty"`
+	ExternalIp   string `json:"external_ip,omitempty"`
+	ExternalPort int    `json:"external_port,omitempty"`
+}
+
+// CreateAutomaticNetwork - create a new network in an Environment
+func CreateAutomaticNetwork(
+	client SkytapClient,
+	envId string,
+	name string,
+	subnet string,
+	domain string) (*Network, error) {
+
+	log.WithFields(log.Fields{"envId": envId, "network_name": name}).Info("Adding network to environment")
+
+	createAutoNetwork := func(s *sling.Sling) *sling.Sling {
+		network := struct {
+			Name        string `json:"name"`
+			NetworkType string `json:"network_type"`
+			Subnet      string `json:"subnet"`
+			Domain      string `json:"domain"`
+		}{
+			Name:        name,
+			NetworkType: "automatic",
+			Subnet:      subnet,
+			Domain:      domain,
+		}
+
+		return s.Post(EnvironmentPath + "/" + envId + "/" + NetworkPath + ".json").BodyJSON(network)
+	}
+
+	network := new(Network)
+	_, err := RunSkytapRequest(client, false, network, createAutoNetwork)
+
+	return network, err
+}
+
+func CreateManualNetwork(
+	client SkytapClient,
+	envId string,
+	name string,
+	subnet string,
+	gateway string) (*Network, error) {
+	log.WithFields(log.Fields{"envId": envId, "network_name": name}).Info("Adding network to environment")
+
+	createAutoNetwork := func(s *sling.Sling) *sling.Sling {
+		network := struct {
+			Name        string `json:"name"`
+			NetworkType string `json:"network_type"`
+			Subnet      string `json:"subnet"`
+			Gateway     string `json:"gateway"`
+		}{
+			Name:        name,
+			NetworkType: "manual",
+			Subnet:      subnet,
+			Gateway:     gateway,
+		}
+		return s.Post(EnvironmentPath + "/" + envId + "/" + NetworkPath + ".json").BodyJSON(network)
+
+	}
+	network := new(Network)
+	_, err := RunSkytapRequest(client, false, network, createAutoNetwork)
+	return network, err
+
+}
+
+// DeleteNetwork - delete a network from an environment
+func DeleteNetwork(client SkytapClient, envId string, netId string) error {
+	log.WithFields(log.Fields{"envId": envId, "netId": netId}).Info("Deleting network in environment")
+
+	deleteNet := func(s *sling.Sling) *sling.Sling {
+		return s.Delete(fmt.Sprintf("%s/%s/%s/%s", EnvironmentPath, envId, NetworkPath, netId))
+	}
+
+	_, err := RunSkytapRequest(client, false, nil, deleteNet)
+	return err
 }
 
 /*
@@ -231,7 +316,7 @@ func (n *Network) DetachFromVpn(client SkytapClient, envId string, vpnId string)
 	return err
 }
 
-func vpnIdPath(vpnId string) string   { return VpnPath + "/" + vpnId + ".json" }
+func vpnIdPath(vpnId string) string { return VpnPath + "/" + vpnId + ".json" }
 
 /*
  Return an existing VPN by id.
@@ -245,4 +330,27 @@ func GetVpn(client SkytapClient, vpnId string) (*Vpn, error) {
 
 	_, err := RunSkytapRequest(client, true, vpn, getVpn)
 	return vpn, err
+}
+
+func (nic *NetworkInterface) AddPublishedService(client SkytapClient, port int, envId, vmId string) (*NetworkInterface, error) {
+
+	log.WithFields(log.Fields{"envId": envId, "vmId": vmId, "interfaceId": nic.Id}).Infof("Adding service")
+
+	service := PublishedService{InternalPort: port}
+
+	addReq := func(s *sling.Sling) *sling.Sling {
+		path := fmt.Sprintf("%s/%s/%s/%s/%s/%s/%s.json", EnvironmentPath, envId, VmPath, vmId, InterfacePath, nic.Id, PublishedServicePath)
+		return s.Post(path).BodyJSON(service)
+	}
+
+	_, err := RunSkytapRequest(client, true, service, addReq)
+	if err != nil {
+		return nic, err
+	}
+
+	nic.PublishedServices = append(nic.PublishedServices, service)
+
+	log.WithField("publishedService", service).Info("Service Added")
+
+	return nic, err
 }
