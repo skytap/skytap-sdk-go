@@ -1,0 +1,26 @@
+{
+  "id": "99-vpn-2312308",
+  "connected": false,
+  "network": {
+    "id": "99",
+    "subnet": "10.0.0.0/24",
+    "network_name": "Default Network",
+    "configuration_id": "1",
+    "configuration_name": "Environment 1",
+    "configuration_type": "configuration",
+    "configuration_url": "https://cloud.skytap.com/configurations/1",
+    "owner_name": "admin",
+    "owner_id": "1",
+    "viewable": true
+  },
+  "vpn": {
+    "id": "vpn-1",
+    "name": "VPN 1",
+    "enabled": true,
+    "nat_enabled": true,
+    "remote_subnets": "10.1.0.0/24, 10.1.1.0/24",
+    "remote_peer_ip": "1.2.3.4",
+    "can_reconnect": true,
+    "connection_type": "vpn"
+  }
+}

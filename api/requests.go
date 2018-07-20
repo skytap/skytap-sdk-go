@@ -37,6 +37,11 @@ const (
 )
 
 /*
+ Added for testability.
+*/
+var baseUrlOveride = ""
+
+/*
  General skytap json error response.
 */
 type SkytapApiError struct {
@@ -166,7 +171,9 @@ func GetSkytapResource(client SkytapClient, url string, respObj interface{}) (*h
 */
 func runSkytapRequestWithRetry(client SkytapClient, useV2 bool, respObj interface{}, slingDecorator SlingDecorator, retryNum int) (*http.Response, error) {
 	baseUrl := BaseUriV1
-	if useV2 {
+	if baseUrlOveride != "" {
+	  baseUrl = baseUrlOveride
+	} else if useV2 {
 		baseUrl = BaseUriV2
 	}
 

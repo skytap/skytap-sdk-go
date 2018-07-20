@@ -1,0 +1,104 @@
+{
+  "id": "1002",
+  "name": "Template VM",
+  "runstate": "stopped",
+  "rate_limited": false,
+  "hardware": {
+    "cpus": 1,
+    "supports_multicore": true,
+    "cpus_per_socket": 1,
+    "ram": 2048,
+    "svms": 2,
+    "guestOS": "ubuntu",
+    "max_cpus": 12,
+    "min_ram": 256,
+    "max_ram": 262144,
+    "vnc_keymap": null,
+    "uuid": null,
+    "disks": [
+      {
+        "id": "disk-1812704-4257268-scsi-0-0",
+        "size": 8192,
+        "type": "SCSI",
+        "controller": "0",
+        "lun": "0"
+      }
+    ],
+    "storage": 8192,
+    "upgradable": true,
+    "instance_type": null,
+    "time_sync_enabled": true,
+    "rtc_start_time": null,
+    "copy_paste_enabled": true,
+    "nested_virtualization": false,
+    "architecture": "x86"
+  },
+  "error": false,
+  "asset_id": null,
+  "hardware_version": 10,
+  "max_hardware_version": 11,
+  "interfaces": [
+    {
+      "id": "nic-1812704-4257268-0",
+      "ip": "10.0.0.2",
+      "hostname": "skytap-desktop",
+      "mac": "00:50:56:22:23:38",
+      "services_count": 0,
+      "services": [],
+      "public_ips_count": 0,
+      "public_ips": [],
+      "vm_id": "1002",
+      "vm_name": "Template VM",
+      "status": "Powered off",
+      "network_id": "1890796",
+      "network_name": "Default Network",
+      "network_url": "https://cloud.skytap.com/templates/2/networks/1890796",
+      "network_type": "automatic",
+      "network_subnet": "10.0.0.0/24",
+      "nic_type": "default",
+      "secondary_ips": []
+    }
+  ],
+  "notes": [],
+  "labels": [
+    {
+      "type": "Language",
+      "text": "english",
+      "id": "396"
+    },
+    {
+      "type": "Vendor",
+      "text": "ubuntu",
+      "id": "558"
+    },
+    {
+      "type": "Disk size",
+      "text": "8 GB",
+      "id": "2290"
+    },
+    {
+      "type": "Version or patch level",
+      "text": "10.04.1 LTS Desktop",
+      "id": "2566"
+    }
+  ],
+  "credentials": [
+    {
+      "id": "3279638",
+      "text": "skytap / ChangeMe!"
+    },
+    {
+      "id": "3279640",
+      "text": "root / ChangeMe!"
+    }
+  ],
+  "desktop_resizable": true,
+  "local_mouse_cursor": true,
+  "maintenance_lock_engaged": false,
+  "region_backend": "skytap",
+  "created_at": "2014/12/19 07:57:08 -0800",
+  "supports_suspend": true,
+  "can_change_object_state": true,
+  "containers": null,
+  "template_url": "https://cloud.skytap.com/templates/2"
+}

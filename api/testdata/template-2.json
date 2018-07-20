@@ -1,0 +1,202 @@
+{
+  "id": "2",
+  "url": "https://cloud.skytap.com/templates/2",
+  "name": "Template with 2 VMs",
+  "region": "US-West",
+  "region_backend": "skytap",
+  "containers_count": 0,
+  "container_hosts_count": 0,
+  "busy": null,
+  "lockversion": "5b12f669acf04d6761f00906e6d17576e6399148",
+  "public": true,
+  "description": "my template",
+  "vms": [
+    {
+      "id": "1002",
+      "name": "Ruby on Rails - Ubuntu Server 14.04 - 64-bit",
+      "runstate": "stopped",
+      "rate_limited": false,
+      "hardware": {
+        "cpus": 1,
+        "supports_multicore": true,
+        "cpus_per_socket": 1,
+        "ram": 1024,
+        "svms": 1,
+        "guestOS": "ubuntu-64",
+        "max_cpus": 12,
+        "min_ram": 256,
+        "max_ram": 262144,
+        "vnc_keymap": null,
+        "uuid": null,
+        "disks": [
+          {
+            "id": "disk-2704096-6305480-scsi-0-0",
+            "size": 20480,
+            "type": "SCSI",
+            "controller": "0",
+            "lun": "0"
+          }
+        ],
+        "storage": 20480,
+        "upgradable": true,
+        "instance_type": null,
+        "time_sync_enabled": true,
+        "rtc_start_time": null,
+        "copy_paste_enabled": true,
+        "nested_virtualization": false,
+        "architecture": "x86"
+      },
+      "error": false,
+      "asset_id": null,
+      "hardware_version": 10,
+      "max_hardware_version": 11,
+      "interfaces": [
+        {
+          "id": "nic-2704096-6305480-0",
+          "ip": "10.0.0.1",
+          "hostname": "host-1",
+          "mac": "00:50:56:14:34:E4",
+          "services_count": 0,
+          "services": [],
+          "public_ips_count": 0,
+          "public_ips": [],
+          "vm_id": "1002",
+          "vm_name": "Ruby on Rails - Ubuntu Server 14.04 - 64-bit",
+          "status": "Powered off",
+          "network_id": "2873082",
+          "network_name": "Default Network",
+          "network_url": "https://cloud.skytap.com/templates/2/networks/2873082",
+          "network_type": "automatic",
+          "network_subnet": "10.0.0.0/24",
+          "nic_type": "vmxnet3",
+          "secondary_ips": []
+        }
+      ],
+      "notes": [],
+      "labels": [],
+      "credentials": [
+        {
+          "id": "4995264",
+          "text": "root / ChangeMe!"
+        },
+        {
+          "id": "4995266",
+          "text": "skytap / ChangeMe!"
+        }
+      ],
+      "desktop_resizable": true,
+      "local_mouse_cursor": true,
+      "maintenance_lock_engaged": false,
+      "region_backend": "skytap",
+      "created_at": "2015/07/23 07:50:08 -0700",
+      "supports_suspend": true,
+      "can_change_object_state": true,
+      "containers": null,
+      "template_url": "https://cloud.skytap.com/templates/2"
+    },
+    {
+      "id": "1003",
+      "name": "Workstation - Ubuntu Desktop 14.04 - 64-bit",
+      "runstate": "stopped",
+      "rate_limited": false,
+      "hardware": {
+        "cpus": 1,
+        "supports_multicore": true,
+        "cpus_per_socket": 1,
+        "ram": 1024,
+        "svms": 1,
+        "guestOS": "ubuntu-64",
+        "max_cpus": 12,
+        "min_ram": 256,
+        "max_ram": 262144,
+        "vnc_keymap": null,
+        "uuid": null,
+        "disks": [
+          {
+            "id": "disk-2704096-6305482-scsi-0-0",
+            "size": 20480,
+            "type": "SCSI",
+            "controller": "0",
+            "lun": "0"
+          }
+        ],
+        "storage": 20480,
+        "upgradable": true,
+        "instance_type": null,
+        "time_sync_enabled": true,
+        "rtc_start_time": null,
+        "copy_paste_enabled": true,
+        "nested_virtualization": false,
+        "architecture": "x86"
+      },
+      "error": false,
+      "asset_id": null,
+      "hardware_version": 10,
+      "max_hardware_version": 11,
+      "interfaces": [
+        {
+          "id": "nic-2704096-6305482-0",
+          "ip": "10.0.0.2",
+          "hostname": "host-2",
+          "mac": "00:50:56:0C:FA:DF",
+          "services_count": 0,
+          "services": [],
+          "public_ips_count": 0,
+          "public_ips": [],
+          "vm_id": "1003",
+          "vm_name": "Workstation - Ubuntu Desktop 14.04 - 64-bit",
+          "status": "Powered off",
+          "network_id": "2873082",
+          "network_name": "Default Network",
+          "network_url": "https://cloud.skytap.com/templates/2/networks/2873082",
+          "network_type": "automatic",
+          "network_subnet": "10.0.0.0/24",
+          "nic_type": "vmxnet3",
+          "secondary_ips": []
+        }
+      ],
+      "notes": [],
+      "labels": [],
+      "credentials": [
+        {
+          "id": "4995270",
+          "text": "root / ChangeMe!"
+        },
+        {
+          "id": "4995272",
+          "text": "skytap / ChangeMe!"
+        }
+      ],
+      "desktop_resizable": true,
+      "local_mouse_cursor": true,
+      "maintenance_lock_engaged": false,
+      "region_backend": "skytap",
+      "created_at": "2015/07/23 07:50:08 -0700",
+      "supports_suspend": true,
+      "can_change_object_state": true,
+      "containers": null,
+      "template_url": "https://cloud.skytap.com/templates/2"
+    }
+  ],
+  "networks": [
+    {
+      "id": "2873082",
+      "url": "https://cloud.skytap.com/configurations/2/networks/2873082",
+      "name": "Default Network",
+      "network_type": "automatic",
+      "subnet": "10.0.0.0/24",
+      "subnet_addr": "10.0.0.0",
+      "subnet_size": 24,
+      "gateway": "10.0.0.254",
+      "primary_nameserver": null,
+      "secondary_nameserver": null,
+      "region": "US-West",
+      "domain": "skytap.example",
+      "vpn_attachments": [],
+      "tunnelable": false,
+      "tunnels": []
+    }
+  ],
+  "publish_sets": [],
+  "tag_list": ""
+}

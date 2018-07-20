@@ -16,14 +16,16 @@ package api
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
+	"strings"
 	"encoding/json"
 	"fmt"
 	log "github.com/Sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 	"os"
-	"time"
+	"io/ioutil"
 )
 
 type testConfig struct {
@@ -60,100 +62,188 @@ func getTestConfig(t *testing.T) *testConfig {
 	return c
 }
 
-func getEnvironment(t *testing.T, client SkytapClient, envId string) error {
-
-	env, err := GetEnvironment(client, envId)
-
-	if err != nil {
-		t.Error(err)
-	}
-	if env.Id != envId {
-		t.Error("Id didn't match")
-	}
-
-	return err
+func getMockServer(client SkytapClient) *httptest.Server {
+	return getMockServerForString(client, "")
 }
 
-func TestCreateEnvironment(t *testing.T) {
-	client := skytapClient(t)
-	c := getTestConfig(t)
-
-	env, err := CreateNewEnvironment(client, c.TemplateId)
-	defer DeleteEnvironment(client, env.Id)
-	require.NoError(t, err, "Error creating environment")
-
-	err = getEnvironment(t, client, env.Id)
-	require.NoError(t, err, "Error retrieving environment")
-
-	env2, err := CreateNewEnvironmentWithVms(client, c.TemplateId, []string{c.VmId})
-	env2, err = env2.WaitUntilReady(client)
-	require.NoError(t, err, "Error creating environment with specific VMs")
-	require.Equal(t, 1, len(env2.Vms), "Should only have 1 VM")
-	require.Equal(t, env.Vms[0].Name, env2.Vms[0].Name, "Should match the requested VM name")
-	err = DeleteEnvironment(client, env2.Id)
-	require.NoError(t, err, "Error deleting environment")
-
-	env3, err := CopyEnvironmentWithVms(client, env.Id, []string{env.Vms[0].Id})
-	defer DeleteEnvironment(client, env3.Id)
-	env3, err = env3.WaitUntilReady(client)
-	require.NoError(t, err, "Error creating environment with specific VMs")
-	require.Equal(t, 1, len(env3.Vms), "Should only have 1 VM")
-	require.Equal(t, env.Vms[0].Name, env3.Vms[0].Name, "Should match the requested VM name")
+func getMockServerForString(client SkytapClient, content string) *httptest.Server {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request){
+		fmt.Fprintln(w, string(content))
+	}))
+	// Divert all API requests to this server
+	baseUrlOveride = server.URL
+	client.HttpClient = server.Client()
+	return server
 }
 
-func TestAddDeleteVirtualMachine(t *testing.T) {
+func readJson(t *testing.T, filename string) string {
+	str, err := ioutil.ReadFile(filename)
+	require.NoError(t, err, "Error reading " + filename)
+	return string(str)
+}
+
+func TestCreateNewEnvironment(t *testing.T) {
+	envJson := readJson(t, "testdata/environment-1.json")
+
 	client := skytapClient(t)
-	c := getTestConfig(t)
+	server := getMockServer(client)
+	defer server.Close()
 
-	env, err := CreateNewEnvironment(client, c.TemplateId)
+	server.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "POST", r.Method)
+		require.Equal(t, "/configurations.json", r.URL.Path)
+		body, _ := ioutil.ReadAll(r.Body)
+		require.Equal(t, `{"template_id":"2"}`, strings.TrimSpace(string(body)))
+		fmt.Fprintln(w, envJson)
+	})
+
+	env, err := CreateNewEnvironment(client, "2")
 	require.NoError(t, err, "Error creating environment")
+	require.Equal(t, "Environment 1", env.Name)
+}
 
-	defer DeleteEnvironment(client, env.Id)
+func TestCreateNewEnvironmentWithVms(t *testing.T) {
+	envJson := readJson(t, "testdata/environment-1.json")
 
-	// Add from template
-	env2, err := env.AddVirtualMachine(client, c.VmId)
-	require.NoError(t, err, "Error adding vm from template")
-	require.Equal(t, len(env.Vms)+1, len(env2.Vms))
+	client := skytapClient(t)
+	server := getMockServer(client)
+	defer server.Close()
 
-	// Add from environment
-	sourceEnv, err := CreateNewEnvironment(client, c.TemplateId)
-	defer DeleteEnvironment(client, sourceEnv.Id)
-	require.NoError(t, err, "Error creating second environment")
-	sourceEnv, err = sourceEnv.WaitUntilReady(client)
-	require.NoError(t, err, "Error creating second environment")
-	_, err = sourceEnv.Vms[0].WaitUntilReady(client)
-	require.NoError(t, err, "Error creating second environment")
+	server.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "POST", r.Method)
+		require.Equal(t, "/configurations.json", r.URL.Path)
+		body, _ := ioutil.ReadAll(r.Body)
+		require.Equal(t, `{"template_id":"2","vm_ids":["1002"]}`, strings.TrimSpace(string(body)))
+		fmt.Fprintln(w, envJson)
+	})
 
-	env3, err := env2.AddVirtualMachine(client, sourceEnv.Vms[0].Id)
-	require.NoError(t, err, "Error adding vm from template")
-	require.Equal(t, len(env2.Vms)+1, len(env3.Vms))
+	env, err := CreateNewEnvironmentWithVms(client, "2", []string{"1002"})
+	require.NoError(t, err, "Error creating environment")
+	require.Equal(t, "Environment 1", env.Name)
+}
 
-	// Delete last one
-	DeleteVirtualMachine(client, env3.Vms[len(env3.Vms)-1].Id)
-	env4, err := GetEnvironment(client, env.Id)
+func TestCopyEnvironmentWithVms(t *testing.T) {
+	envJson := readJson(t, "testdata/environment-1.json")
+
+	client := skytapClient(t)
+	server := getMockServer(client)
+	defer server.Close()
+
+	server.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "POST", r.Method)
+		require.Equal(t, "/configurations.json", r.URL.Path)
+		body, _ := ioutil.ReadAll(r.Body)
+		require.Equal(t, `{"configuration_id":"1","vm_ids":["1001"]}`, strings.TrimSpace(string(body)))
+		fmt.Fprintln(w, envJson)
+	})
+
+	env, err := CopyEnvironmentWithVms(client, "1", []string{"1001"})
+	require.NoError(t, err, "Error creating environment")
+	require.Equal(t, "Environment 1", env.Name)
+}
+
+func TestAddVirtualMachineFromTemplate(t *testing.T) {
+	envJson := readJson(t, "testdata/environment-1.json")
+	templJson := readJson(t, "testdata/template-2.json")
+	templateVmJson := readJson(t, "testdata/vm-1002.json")
+
+	client := skytapClient(t)
+	server := getMockServerForString(client, envJson)
+	defer server.Close()
+
+	env, err := GetEnvironment(client, "1")
 	require.NoError(t, err, "Error getting environment")
-	require.Equal(t, len(env2.Vms), len(env4.Vms))
 
-	// Add from same environment
-	env5, err := env.AddVirtualMachine(client, env.Vms[0].Id)
+	server.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		tmpstr := ""
+		if r.Method == "GET" {
+			// handle requests for vm and its template
+			if strings.Contains(r.URL.Path, "/vms") {
+				// replace any hostnames in the vm json
+				tmpstr = strings.Replace(templateVmJson, "https://cloud.skytap.com", server.URL, -1)
+			} else {
+				tmpstr = templJson
+			}
+			fmt.Fprintln(w, tmpstr)
+		} else if r.Method == "PUT" {
+			require.Equal(t, "/configurations/1.json", r.URL.Path)
+			body, _ := ioutil.ReadAll(r.Body)
+			require.Equal(t, `{"template_id":"2","vm_ids":["1002"]}`, strings.TrimSpace(string(body)))
+			fmt.Fprintln(w, envJson)
+		}
+	})
+
+	env, err = env.AddVirtualMachine(client, "1002")
 	require.NoError(t, err, "Error adding vm from template")
-	require.Equal(t, len(env2.Vms)+1, len(env5.Vms))
+	require.Equal(t, "Environment 1", env.Name)
+}
 
-	for _, value := range env5.Vms {
-		require.Equal(t, "Docker Machine Template - Ubuntu Server 14.04 - 64-bit", value.Name)
-	}
+func TestAddVirtualMachineFromEnvironment(t *testing.T) {
+	envJson := readJson(t, "testdata/environment-1.json")
+	vmJson := readJson(t, "testdata/vm-1001.json")
+
+	client := skytapClient(t)
+	server := getMockServerForString(client, envJson)
+	defer server.Close()
+
+	env, err := GetEnvironment(client, "1")
+	require.NoError(t, err, "Error getting environment")
+
+	server.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		tmpstr := ""
+		if r.Method == "GET" {
+			// handle requests for vm and its environment
+			if strings.Contains(r.URL.Path, "/vms") {
+				// replace any hostnames in the vm json
+				tmpstr = strings.Replace(vmJson, "https://cloud.skytap.com", server.URL, -1)
+			} else {
+				tmpstr = envJson
+			}
+			fmt.Fprintln(w, tmpstr)
+		} else if r.Method == "PUT" {
+			require.Equal(t, "/configurations/1.json", r.URL.Path)
+			body, _ := ioutil.ReadAll(r.Body)
+			require.Equal(t, `{"merge_configuration":"1","vm_ids":["1001"]}`, strings.TrimSpace(string(body)))
+			fmt.Fprintln(w, envJson)
+		}
+	})
+
+	env, err = env.AddVirtualMachine(client, "1001")
+	require.NoError(t, err, "Error adding vm from template")
+	require.Equal(t, "Environment 1", env.Name)
+}
+
+func TestDeleteVirtualMachine(t *testing.T) {
+	client := skytapClient(t)
+	server := getMockServer(client)
+	defer server.Close()
+
+	server.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "DELETE", r.Method)
+		require.Equal(t, "/vms/1001", r.URL.Path)
+		fmt.Fprintln(w, "{}")
+	})
+
+	err := DeleteVirtualMachine(client, "1001")
+	require.NoError(t, err, "Error deleting vm")
 }
 
 func TestVmCredentials(t *testing.T) {
+	vmJson := readJson(t, "testdata/vm-1001.json")
+	credJson := readJson(t, "testdata/credentials.json")
+
 	client := skytapClient(t)
-	c := getTestConfig(t)
+	server := getMockServerForString(client, vmJson)
+	defer server.Close()
 
-	env, err := CreateNewEnvironment(client, c.TemplateId)
-	require.NoError(t, err, "Error creating environment")
+	vm, err := GetVirtualMachine(client, "1001")
+	require.NoError(t, err, "Error creating vm")
 
-	defer DeleteEnvironment(client, env.Id)
+	server.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, credJson)
+	})
 
-	creds, err := env.Vms[0].GetCredentials(client)
+	creds, err := vm.GetCredentials(client)
 	require.NoError(t, err, "Error getting VM credentials")
 
 	user, err := creds[0].Username()
@@ -163,89 +253,154 @@ func TestVmCredentials(t *testing.T) {
 	pass, err := creds[0].Password()
 	require.NoError(t, err, "Error getting password")
 	require.Equal(t, "ChangeMe!", pass)
-
 }
 
-func TestManipulateVmRunstate(t *testing.T) {
+func TestVmWaitUntilReady(t *testing.T) {
+	vmJson := readJson(t, "testdata/vm-1001.json")
+
 	client := skytapClient(t)
-	c := getTestConfig(t)
+	server := getMockServerForString(client, strings.Replace(vmJson, "stopped", "busy", 1))
+	defer server.Close()
 
-	env, err := CreateNewEnvironment(client, c.TemplateId)
-	defer DeleteEnvironment(client, env.Id)
-	require.NoError(t, err, "Error creating environment")
-
-	vm, err := GetVirtualMachine(client, env.Vms[0].Id)
+	vm, err := GetVirtualMachine(client, "1001")
 	require.NoError(t, err, "Error creating vm")
+	require.Equal(t, RunStateBusy, vm.Runstate, "Should be busy")
 
-	stopped, err := vm.WaitUntilReady(client)
-	require.NoError(t, err, "Error waiting on vm")
-	require.Equal(t, RunStateStop, stopped.Runstate, "Should be stopped after waiting")
+	server.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "/vms/1001", r.URL.Path)
+		fmt.Fprintln(w, vmJson)
+	})
 
-	started, err := stopped.Start(client)
+	vm, err = vm.WaitUntilReady(client)
+	require.NoError(t, err, "Error waiting for VM")
+	require.Equal(t, RunStateStop, vm.Runstate, "Should be stopped")
+}
+
+func TestVmStart(t *testing.T) {
+	vmJson := readJson(t, "testdata/vm-1001.json")
+
+	client := skytapClient(t)
+	server := getMockServerForString(client, vmJson)
+	defer server.Close()
+
+	vm, err := GetVirtualMachine(client, "1001")
+	require.NoError(t, err, "Error creating vm")
+	require.Equal(t, RunStateStop, vm.Runstate, "Should be stopped")
+
+	server.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "/vms/1001", r.URL.Path)
+		if r.Method == "PUT" {
+			body, _ := ioutil.ReadAll(r.Body)
+			require.Equal(t, `{"runstate":"running"}`, strings.TrimSpace(string(body)))
+		}
+		tmpstr := strings.Replace(vmJson, "stopped", "running", 1)
+		fmt.Fprintln(w, tmpstr)
+	})
+
+	started, err := vm.Start(client)
 	require.NoError(t, err, "Error starting VM")
 	require.Equal(t, RunStateStart, started.Runstate, "Should be started")
+}
 
-  // Need to give the VM time to startup and load VM Tools
-	time.Sleep(2 * time.Minute)
+func TestVmSuspend(t *testing.T) {
+	vmJson := readJson(t, "testdata/vm-1001.json")
 
-	stopped, err = started.Stop(client)
-	require.NoError(t, err, "Error stopping VM")
-	require.Equal(t, RunStateStop, stopped.Runstate, "Should be stopped")
+	client := skytapClient(t)
+	server := getMockServerForString(client, strings.Replace(vmJson, "stopped", "running", 1))
+	defer server.Close()
 
-	started, err = stopped.Start(client)
-	require.NoError(t, err, "Error starting VM")
-	require.Equal(t, RunStateStart, started.Runstate, "Should be started")
+	vm, err := GetVirtualMachine(client, "1001")
+	require.NoError(t, err, "Error creating vm")
+	require.Equal(t, RunStateStart, vm.Runstate, "Should be started")
 
-	suspended, err := started.Suspend(client)
+	server.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "/vms/1001", r.URL.Path)
+		if r.Method == "PUT" {
+			body, _ := ioutil.ReadAll(r.Body)
+			require.Equal(t, `{"runstate":"suspended"}`, strings.TrimSpace(string(body)))
+		}
+		tmpstr := strings.Replace(vmJson, "stopped", "suspended", 1)
+		fmt.Fprintln(w, tmpstr)
+	})
+
+	suspended, err := vm.Suspend(client)
 	require.NoError(t, err, "Error suspending VM")
 	require.Equal(t, RunStatePause, suspended.Runstate, "Should be suspended")
+}
 
-	started, err = suspended.Start(client)
-	require.NoError(t, err, "Error starting VM")
-	require.Equal(t, RunStateStart, started.Runstate, "Should be started")
+func TestVmKill(t *testing.T) {
+	vmJson := readJson(t, "testdata/vm-1001.json")
 
-	killed, err := started.Kill(client)
+	client := skytapClient(t)
+	server := getMockServerForString(client, strings.Replace(vmJson, "stopped", "running", 1))
+	defer server.Close()
+
+	vm, err := GetVirtualMachine(client, "1001")
+	require.NoError(t, err, "Error creating vm")
+	require.Equal(t, RunStateStart, vm.Runstate, "Should be started")
+
+	server.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "/vms/1001", r.URL.Path)
+		if r.Method == "PUT" {
+			body, _ := ioutil.ReadAll(r.Body)
+			require.Equal(t, `{"runstate":"halted"}`, strings.TrimSpace(string(body)))
+		}
+		fmt.Fprintln(w, vmJson)
+	})
+
+	killed, err := vm.Kill(client)
 	require.NoError(t, err, "Error stopping VM")
 	require.Equal(t, RunStateStop, killed.Runstate, "Should be stopped/killed")
-
 }
 
 func TestChangeNetworkHostname(t *testing.T) {
+	envJson := readJson(t, "testdata/environment-1.json")
+	vmJson := readJson(t, "testdata/vm-1001.json")
+
 	client := skytapClient(t)
-	c := getTestConfig(t)
+	server := getMockServerForString(client, envJson)
+	defer server.Close()
 
-	env, err := CreateNewEnvironment(client, c.TemplateId)
-	defer DeleteEnvironment(client, env.Id)
-	require.NoError(t, err, "Error creating environment")
+	env, err := GetEnvironment(client, "1")
+	require.NoError(t, err, "Error getting environment")
+	vm := env.Vms[0]
 
-	vm, err := GetVirtualMachine(client, env.Vms[0].Id)
-	require.NoError(t, err, "Error creating vm")
+	server.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "PUT", r.Method)
+		require.Equal(t, "/configurations/1/vms/1001/interfaces/nic-5971736-13548234-0.json", r.URL.Path)
+		body, _ := ioutil.ReadAll(r.Body)
+		require.Equal(t, `{"hostname":"newname1234"}`, strings.TrimSpace(string(body)))
+		fmt.Fprintln(w, vmJson)
+	})
 
-	testName := "newname1234"
-	renamed, err := vm.RenameNetworkInterface(client, env.Id, vm.Interfaces[0].Id, testName)
+	_, err = vm.RenameNetworkInterface(client, env.Id, vm.Interfaces[0].Id, "newname1234")
 	require.NoError(t, err, "Error renaming interface")
-	require.Equal(t, testName, renamed.Hostname)
-
-	vm, err = GetVirtualMachine(client, vm.Id)
-	require.NoError(t, err, "Error refreshing VM")
-	require.Equal(t, testName, vm.Interfaces[0].Hostname)
-
 }
 
 func TestUpdateHardware(t *testing.T) {
+	vmJson := readJson(t, "testdata/vm-1001.json")
+
 	client := skytapClient(t)
-	c := getTestConfig(t)
+	server := getMockServerForString(client, vmJson)
+	defer server.Close()
 
-	env, err := CreateNewEnvironment(client, c.TemplateId)
-	defer DeleteEnvironment(client, env.Id)
-	require.NoError(t, err, "Error creating environment")
-
-	vm, err := GetVirtualMachine(client, env.Vms[0].Id)
+	vm, err := GetVirtualMachine(client, "1001")
 	require.NoError(t, err, "Error creating vm")
 
 	cpus := 4
 	persock := 2
 	hardware := Hardware{&cpus, &persock, nil}
+
+	server.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "/vms/1001.json", r.URL.Path)
+		require.Equal(t, "PUT", r.Method)
+		body, _ := ioutil.ReadAll(r.Body)
+		require.Equal(t, `{"hardware":{"cpus":4,"cpus_per_socket":2}}`, strings.TrimSpace(string(body)))
+
+		tmpstr := strings.Replace(vmJson, `"cpus": 1`, `"cpus": 4`, 1)
+		tmpstr = strings.Replace(tmpstr, `"cpus_per_socket": 1`, `"cpus_per_socket": 2`, 1)
+		fmt.Fprintln(w, tmpstr)
+	})
 
 	updated, err := vm.UpdateHardware(client, hardware, false)
 	require.NoError(t, err, "Error updating hardware")
@@ -257,8 +412,17 @@ func TestUpdateHardware(t *testing.T) {
 	ram := 4096
 	updateRam := Hardware{Ram: &ram}
 
-	updated, err = vm.WaitUntilReady(client)
-	require.NoError(t, err, "Error waiting on vm")
+	server.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "/vms/1001.json", r.URL.Path)
+		require.Equal(t, "PUT", r.Method)
+		body, _ := ioutil.ReadAll(r.Body)
+		require.Equal(t, `{"hardware":{"ram":4096}}`, strings.TrimSpace(string(body)))
+
+		tmpstr := strings.Replace(vmJson, `"cpus": 1`, `"cpus": 4`, 1)
+		tmpstr = strings.Replace(tmpstr, `"cpus_per_socket": 1`, `"cpus_per_socket": 2`, 1)
+		tmpstr = strings.Replace(tmpstr, `"ram": 1024`, `"ram": 4096`, 1)
+		fmt.Fprintln(w, tmpstr)
+	})
 
 	updated, err = vm.UpdateHardware(client, updateRam, false)
 	require.NoError(t, err, "Error updating ram")
@@ -268,63 +432,86 @@ func TestUpdateHardware(t *testing.T) {
 }
 
 func TestChangeName(t *testing.T) {
+	vmJson := readJson(t, "testdata/vm-1001.json")
+
 	client := skytapClient(t)
-	c := getTestConfig(t)
+	server := getMockServerForString(client, vmJson)
+	defer server.Close()
 
-	env, err := CreateNewEnvironment(client, c.TemplateId)
-	defer DeleteEnvironment(client, env.Id)
-	require.NoError(t, err, "Error creating environment")
-
-	vm, err := GetVirtualMachine(client, env.Vms[0].Id)
+	vm, err := GetVirtualMachine(client, "1001")
 	require.NoError(t, err, "Error creating vm")
 
-	name := "foo"
-	vm, err = vm.SetName(client, name)
-	require.NoError(t, err, "Error setting name")
-	require.Equal(t, name, vm.Name)
+	server.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "PUT", r.Method)
+		require.Equal(t, "/vms/1001.json", r.URL.Path)
+		require.Equal(t, "name=foo", r.URL.RawQuery)
+		fmt.Fprintln(w, vmJson)
+	})
 
+	_, err = vm.SetName(client, "foo")
+	require.NoError(t, err, "Error updating name")
 }
 
 func TestAttachVpn(t *testing.T) {
+	envJson := readJson(t, "testdata/environment-1.json")
+	attachVpnJson := readJson(t, "testdata/attach-vpn-1.json")
+
 	client := skytapClient(t)
-	c := getTestConfig(t)
+	server := getMockServerForString(client, envJson)
+	defer server.Close()
 
-	env, err := CreateNewEnvironment(client, c.TemplateId)
-	defer DeleteEnvironment(client, env.Id)
-	require.NoError(t, err, "Error creating environment")
+	env, err := GetEnvironment(client, "1")
+	require.NoError(t, err, "Error getting environment")
+	vm := env.Vms[0]
+	network := env.Networks[0]
 
-	result, err := env.Networks[0].AttachToVpn(client, env.Id, c.VpnId)
+	server.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "POST", r.Method)
+		require.Equal(t, "/configurations/1/networks/99/vpns.json", r.URL.Path)
+		body, _ := ioutil.ReadAll(r.Body)
+		require.Equal(t, `{"vpn_id":"vpn-1"}`, strings.TrimSpace(string(body)))
+		fmt.Fprintln(w, attachVpnJson)
+	})
+
+	result, err := network.AttachToVpn(client, env.Id, "vpn-1")
 	require.NoError(t, err, "Error attaching VPN")
-	log.Println(result)
+	require.Equal(t, false, result.Connected)
 
-	err = env.Networks[0].ConnectToVpn(client, env.Id, c.VpnId)
+	server.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "PUT", r.Method)
+		require.Equal(t, "/configurations/1/networks/99/vpns/vpn-1", r.URL.Path)
+		body, _ := ioutil.ReadAll(r.Body)
+		require.Equal(t, `{"connected":true}`, strings.TrimSpace(string(body)))
+
+		tmpstr := strings.Replace(attachVpnJson, `"connected": false`, `"connected": true`, 1)
+		fmt.Fprintln(w, tmpstr)
+	})
+
+	err = network.ConnectToVpn(client, env.Id, "vpn-1")
 	require.NoError(t, err, "Error connecting VPN")
 
-	// Now start VM and make sure it gets a good address from VPN NAT
-	started, err := env.Vms[0].Start(client)
-	require.NoError(t, err, "Error starting VM")
-	require.Equal(t, c.VpnId, started.Interfaces[0].NatAddresses.VpnNatAddresses[0].VpnId, "Should have correct VPN id")
+	// Verify parsing of NatAddresses
+	require.Equal(t, "vpn-1", vm.Interfaces[0].NatAddresses.VpnNatAddresses[0].VpnId, "Should have correct VPN id")
 
-	err = env.Networks[0].DisconnectFromVpn(client, env.Id, c.VpnId)
+	server.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "PUT", r.Method)
+		require.Equal(t, "/configurations/1/networks/99/vpns/vpn-1", r.URL.Path)
+		body, _ := ioutil.ReadAll(r.Body)
+		require.Equal(t, `{"connected":false}`, strings.TrimSpace(string(body)))
+		fmt.Fprintln(w, attachVpnJson)
+	})
+
+	err = network.DisconnectFromVpn(client, env.Id, "vpn-1")
 	require.NoError(t, err, "Error disconnecting VPN")
 
-	err = env.Networks[0].DetachFromVpn(client, env.Id, c.VpnId)
+	server.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "DELETE", r.Method)
+		require.Equal(t, "/configurations/1/networks/99/vpns/vpn-1", r.URL.Path)
+		body, _ := ioutil.ReadAll(r.Body)
+		require.Equal(t, "", strings.TrimSpace(string(body)))
+		fmt.Fprintln(w, attachVpnJson)
+	})
+
+	err = network.DetachFromVpn(client, env.Id, "vpn-1")
 	require.NoError(t, err, "Error detaching VPN")
-
-	env, err = env.WaitUntilReady(client)
-	require.NoError(t, err, "Error waiting for environment")
-	log.Println(env.Networks[0].VpnAttachments)
-}
-
-func TestMergeBody(t *testing.T) {
-	vmId := "9285760"
-	c := getTestConfig(t)
-
-	b := &MergeTemplateBody{TemplateId: c.TemplateId, VmIds: []string{vmId}}
-	j, _ := json.Marshal(b)
-	println(string(j))
-
-	j, _ = json.Marshal(&MergeEnvironmentBody{EnvironmentId: c.TemplateId, VmIds: []string{vmId}})
-	println(string(j))
-
 }
