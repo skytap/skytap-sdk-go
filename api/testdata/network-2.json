@@ -1,0 +1,16 @@
+{
+    "id": "2881190",
+    "url": "https://cloud.skytap.com/configurations/4745364/networks/2881190",
+    "name": "API Network",
+    "network_type": "manual",
+    "subnet": "10.0.1.0/24",
+    "subnet_addr": "10.0.1.0",
+    "subnet_size": 24,
+    "gateway": "10.0.1.254",
+    "primary_nameserver": null,
+    "secondary_nameserver": null,
+    "region": "US-West",
+    "vpn_attachments": [],
+    "tunnelable": false,
+    "tunnels": []
+}

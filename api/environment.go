@@ -16,6 +16,7 @@ package api
 
 import (
 	"errors"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/dghubble/sling"
 )
@@ -28,14 +29,14 @@ const (
 Skytap Environment resource.
 */
 type Environment struct {
-	Id          string            `json:"id"`
-	Url         string            `json:"url"`
-	Name        string            `json:"name"`
-	Description string            `json:"description"`
-	Error       []string          `json:"errors"`
-	Runstate    string            `json:"runstate"`
-	Vms         []*VirtualMachine `json:"vms"`
-	Networks    []Network         `json:"networks"`
+	Id          string            `json:"id,omitempty"`
+	Url         string            `json:"url,omitempty"`
+	Name        string            `json:"name,omitempty"`
+	Description string            `json:"description,omitempty"`
+	Error       []string          `json:"errors,omitempty"`
+	Runstate    string            `json:"runstate,omitempty"`
+	Vms         []*VirtualMachine `json:"vms,omitempty"`
+	Networks    []Network         `json:"networks,omitempty"`
 }
 
 /*
@@ -71,6 +72,18 @@ type MergeEnvironmentBody struct {
 
 func environmentIdV1Path(envId string) string { return EnvironmentPath + "/" + envId }
 func environmentIdPath(envId string) string   { return EnvironmentPath + "/" + envId + ".json" }
+
+func RenameEnvironment(client SkytapClient, envId string, name string, restartEnv bool) (*Environment, error) {
+	nameReq := func(s *sling.Sling) *sling.Sling {
+		return s.Put(environmentIdPath(envId)).BodyJSON(&Environment{Name: name})
+	}
+
+	interfaceResp := &Environment{}
+
+	log.WithFields(log.Fields{"newName": name, "envId": envId}).Infof("Renaming environment")
+	_, err := RunSkytapRequest(client, false, interfaceResp, nameReq)
+	return interfaceResp, err
+}
 
 /*
  Adds a VM to an existing environment.
@@ -149,7 +162,7 @@ func (e *Environment) MergeVirtualMachine(client SkytapClient, mergeBody interfa
 	_, err := RunSkytapRequest(client, false, newEnv, merge)
 	if err != nil {
 		log.Errorf("Unable to add VM to environment (%s), requestBody: %+v, cause: %s", e.Id, mergeBody, err)
-		return nil, err
+		return e, err
 	}
 	return newEnv, nil
 }
