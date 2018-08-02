@@ -33,6 +33,7 @@ const (
 	BaseUriV1      = "https://cloud.skytap.com"
 	BaseUriV2      = "https://cloud.skytap.com/v2"
 	MetadataUri    = "http://gw/skytap"
+	UserAgent      = "skytap-go-sdk"
 
 	maxRetries = 6
 )
@@ -173,7 +174,7 @@ func GetSkytapResource(client SkytapClient, url string, respObj interface{}) (*h
 func runSkytapRequestWithRetry(client SkytapClient, useV2 bool, respObj interface{}, slingDecorator SlingDecorator, retryNum int) (*http.Response, error) {
 	baseUrl := BaseUriV1
 	if baseUrlOveride != "" {
-	  baseUrl = baseUrlOveride
+		baseUrl = baseUrlOveride
 	} else if useV2 {
 		baseUrl = BaseUriV2
 	}
@@ -188,6 +189,7 @@ func runSkytapRequestWithRetry(client SkytapClient, useV2 bool, respObj interfac
 		acceptHeader = AcceptHeaderV2
 	}
 	req.Header.Set("Accept", acceptHeader)
+	req.Header.Set("User-Agent", UserAgent)
 	var resp *http.Response
 	resp, err = s.Do(req, respObj, skytapError)
 
