@@ -33,7 +33,7 @@ const (
 	BaseUriV1      = "https://cloud.skytap.com"
 	BaseUriV2      = "https://cloud.skytap.com/v2"
 	MetadataUri    = "http://gw/skytap"
-	UserAgent      = "skytap-go-sdk"
+	UserAgent      = "skytap-sdk-go"
 
 	maxRetries = 6
 )
