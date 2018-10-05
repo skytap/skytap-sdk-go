@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/opencredo/skytap-sdk-go-internal/options"
 	"io"
 	"net/http"
@@ -35,8 +36,8 @@ func NewClient(ctx context.Context, opts ...options.ClientOption) (*Client, erro
 			Transport: transport,
 		},
 		baseUrl: &url.URL{
-			Scheme: "https",
-			Host:   "cloud.skytap.com",
+			Scheme: settings.Scheme,
+			Host:   settings.Host,
 		},
 		settings: settings,
 	}, nil
@@ -80,9 +81,15 @@ func (c *Client) do(req *http.Request, v interface{}) (*http.Response, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	err = json.NewDecoder(resp.Body).Decode(v)
 
+	if v != nil {
+		err = json.NewDecoder(resp.Body).Decode(v)
+	}
 	//TODO handle default error codes, resource wait and authentication issues.
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		err = errors.New(resp.Status)
+	}
+
 	return resp, err
 }
 

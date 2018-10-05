@@ -1,0 +1,25 @@
+dist: trusty
+sudo: required
+services:
+- docker
+language: go
+go:
+- "1.10"
+install:
+- go get github.com/kardianos/govendor
+script:
+- govendor init
+- govendor fetch github.com/hashicorp/go-multierror
+- govendor fetch github.com/stretchr/testify/assert
+- make build
+- make test
+- make vendor-status
+- make vet
+branches:
+  only:
+  - master
+  - ci
+matrix:
+  fast_finish: true
+  allow_failures:
+  - go: tip
