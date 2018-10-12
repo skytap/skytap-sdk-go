@@ -5,7 +5,7 @@ PKG_NAME=skytap
 default: build
 
 build: fmtcheck
-	go install
+	go install ./skytap
 
 test: fmtcheck
 	go test -i $(TEST) || exit 1
@@ -13,7 +13,7 @@ test: fmtcheck
 		xargs -t -n4 go test $(TESTARGS) -timeout=30s -parallel=4 -v
 
 vet:
-	@echo "go vet ."
+	@echo "go vet ./skytap"
 	@go vet $$(go list ./... | grep -v vendor/) ; if [ $$? -eq 1 ]; then \
 		echo ""; \
 		echo "Vet found suspicious constructs. Please check the reported constructs"; \

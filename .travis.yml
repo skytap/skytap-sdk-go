@@ -1,16 +1,9 @@
 dist: trusty
 sudo: required
-services:
-- docker
 language: go
 go:
-- "1.10"
-install:
-- go get github.com/kardianos/govendor
+- "1.11"
 script:
-- govendor init
-- govendor fetch github.com/hashicorp/go-multierror
-- govendor fetch github.com/stretchr/testify/assert
 - make build
 - make test
 - make vendor-status

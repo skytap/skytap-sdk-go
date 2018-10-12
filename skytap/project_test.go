@@ -2,14 +2,13 @@ package skytap
 
 import (
 	"context"
-	"github.com/opencredo/skytap-sdk-go-internal/options"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func createClient(t *testing.T) (*Client, *httptest.Server, *func(rw http.ResponseWriter, req *http.Request)) {
@@ -21,16 +20,9 @@ func createClient(t *testing.T) (*Client, *httptest.Server, *func(rw http.Respon
 	var user = "SKYTAP_USER"
 	var token = "SKYTAP_ACCESS_TOKEN"
 
-	var url url.URL
-	urlPtr, err := url.Parse(hs.URL)
+	settings := NewDefaultSettings(WithBaseUrl(hs.URL), WithCredentialsProvider(NewApiTokenCredentials(user, token)))
 
-	assert.Nil(t, err)
-
-	skytap, err := NewClient(context.Background(),
-		options.WithUser(user),
-		options.WithAPIToken(token),
-		options.WithScheme(urlPtr.Scheme),
-		options.WithHost(urlPtr.Host))
+	skytap, err := NewClient(settings)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, skytap)
@@ -65,15 +57,20 @@ func TestCreateProject(t *testing.T) {
 			}
 			body, err := ioutil.ReadAll(req.Body)
 			assert.Nil(t, err)
-			assert.JSONEq(t, `{"name":"test-project","summary":"test project"}`, string(body))
+			assert.JSONEq(t, `{"id": "12345","name":"test-project","summary":"test project"}`, string(body))
 			io.WriteString(rw, `{"id": "12345", "name": "test-project", "summary": "test project"}`)
 		}
 	}
 
-	project, err := skytap.CreateProject(context.Background(), "test-project", "test project")
+	opts := Project{
+		Name:    StringPtr("test-project"),
+		Summary: StringPtr("test project"),
+	}
+
+	project, err := skytap.Projects.Create(context.Background(), &opts)
 
 	assert.Nil(t, err)
-	assert.Equal(t, &Project{Id: project.Id, Name: "test-project", Summary: "test project"}, project)
+	assert.Equal(t, &Project{Id: project.Id, Name: StringPtr("test-project"), Summary: StringPtr("test project")}, project)
 }
 
 func TestReadProject(t *testing.T) {
@@ -90,10 +87,10 @@ func TestReadProject(t *testing.T) {
 		io.WriteString(rw, `{"id": "12345", "name": "test-project", "summary": "test project"}`)
 	}
 
-	projectRead, err := skytap.ReadProject(context.Background(), "12345")
+	projectRead, err := skytap.Projects.Get(context.Background(), "12345")
 
 	assert.Nil(t, err)
-	assert.Equal(t, &Project{Id: "12345", Name: "test-project", Summary: "test project"}, projectRead)
+	assert.Equal(t, &Project{Id: StringPtr("12345"), Name: StringPtr("test-project"), Summary: StringPtr("test project")}, projectRead)
 }
 
 func TestUpdateProject(t *testing.T) {
@@ -109,15 +106,22 @@ func TestUpdateProject(t *testing.T) {
 		}
 		body, err := ioutil.ReadAll(req.Body)
 		assert.Nil(t, err)
-		assert.JSONEq(t, `{"name":"updated name","summary":"updated summary"}`, string(body))
+		assert.JSONEq(t, `{"id": "12345","name":"updated name","summary":"updated summary"}`, string(body))
 		io.WriteString(rw, `{"id": "12345", "name": "updated name", "summary": "updated summary"}`)
 	}
 
-	projectUpdate, err := skytap.UpdateProject(context.Background(), &Project{"12345",
-		"updated name", "updated summary"})
+	opts := &Project{
+		Id:      StringPtr("12345"),
+		Name:    StringPtr("updated name"),
+		Summary: StringPtr("updated summary"),
+	}
+
+	projectUpdate, err := skytap.Projects.Update(context.Background(), "12345", opts)
+
+	expectedResult := &Project{Id: StringPtr("12345"), Name: StringPtr("updated name"), Summary: StringPtr("updated summary")}
 
 	assert.Nil(t, err)
-	assert.Equal(t, &Project{Id: "12345", Name: "updated name", Summary: "updated summary"}, projectUpdate)
+	assert.Equal(t, expectedResult, projectUpdate)
 }
 
 func TestDeleteProject(t *testing.T) {
@@ -133,7 +137,7 @@ func TestDeleteProject(t *testing.T) {
 		}
 	}
 
-	err := skytap.DeleteProject(context.Background(), "12345")
+	err := skytap.Projects.Delete(context.Background(), "12345")
 	assert.Nil(t, err)
 }
 
@@ -158,13 +162,13 @@ func TestListProjects(t *testing.T) {
     }]`)
 	}
 
-	projects, err := skytap.ListProjects(context.Background())
+	result, err := skytap.Projects.List(context.Background())
 
 	assert.Nil(t, err)
 
 	var found = false
-	for _, project := range *projects {
-		if project.Name == "updated name" {
+	for _, project := range result.Value {
+		if *project.Name == "updated name" {
 			found = true
 			break
 		}
