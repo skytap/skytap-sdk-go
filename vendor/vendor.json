@@ -9,20 +9,6 @@
 			"revisionTime": "2018-08-30T19:11:22Z"
 		},
 		{
-			"checksumSHA1": "ByRdQMv2yl16W6Tp9gUW1nNmpuI=",
-			"path": "github.com/hashicorp/errwrap",
-			"revision": "8a6fb523712970c966eefc6b39ed2c5e74880354",
-			"revisionTime": "2018-08-24T00:39:10Z"
-		},
-		{
-			"checksumSHA1": "cFcwn0Zxefithm9Q9DioRNcGbqg=",
-			"path": "github.com/hashicorp/go-multierror",
-			"revision": "886a7fbe3eb1c874d46f623bfa70af45f425b3d1",
-			"revisionTime": "2018-08-24T00:40:42Z",
-			"version": "v1.0.0",
-			"versionExact": "v1.0.0"
-		},
-		{
 			"checksumSHA1": "LuFv4/jlrmFNnDb/5SCSEPAM9vU=",
 			"path": "github.com/pmezard/go-difflib/difflib",
 			"revision": "792786c7400a136282c1664665ae0a8db921c6c2",

@@ -2,8 +2,6 @@ package skytap
 
 import (
 	"fmt"
-
-	"github.com/hashicorp/go-multierror"
 )
 
 const (
@@ -12,33 +10,31 @@ const (
 )
 
 type Settings struct {
-	BaseUrl   string
-	UserAgent string
+	baseUrl   string
+	userAgent string
 
-	Credentials CredentialsProvider
+	credentials CredentialsProvider
 }
 
 func (s *Settings) Validate() error {
-	var err *multierror.Error
-
-	if s.BaseUrl == "" {
-		err = multierror.Append(err, fmt.Errorf("the base URL must be provided"))
+	if s.baseUrl == "" {
+		return fmt.Errorf("The base URL must be provided")
 	}
-	if s.UserAgent == "" {
-		err = multierror.Append(err, fmt.Errorf("the user agent must be provided"))
+	if s.userAgent == "" {
+		return fmt.Errorf("The user agent must be provided")
 	}
-	if s.Credentials == nil {
-		err = multierror.Append(err, fmt.Errorf("the credential provider must be provided"))
+	if s.credentials == nil {
+		return fmt.Errorf("The credential provider must be provided")
 	}
 
-	return err.ErrorOrNil()
+	return nil
 }
 
 func NewDefaultSettings(clientSettings ...ClientSetting) Settings {
 	settings := Settings{
-		BaseUrl:     DefaultBaseURL,
-		UserAgent:   DefaultUserAgent,
-		Credentials: NewNoOpCredentials(),
+		baseUrl:     DefaultBaseURL,
+		userAgent:   DefaultUserAgent,
+		credentials: NewNoOpCredentials(),
 	}
 
 	// Apply any custom settings
@@ -58,15 +54,15 @@ type withUserAgent string
 type withCredentialsProvider struct{ cp CredentialsProvider }
 
 func (w withBaseUrl) Apply(s *Settings) {
-	s.BaseUrl = string(w)
+	s.baseUrl = string(w)
 }
 
 func (w withUserAgent) Apply(s *Settings) {
-	s.UserAgent = string(w)
+	s.userAgent = string(w)
 }
 
 func (w withCredentialsProvider) Apply(s *Settings) {
-	s.Credentials = w.cp
+	s.credentials = w.cp
 }
 
 func WithBaseUrl(BaseUrl string) ClientSetting {

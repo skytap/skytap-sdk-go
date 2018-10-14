@@ -370,6 +370,11 @@ func (s *EnvironmentsServiceClient) List(ctx context.Context) (*EnvironmentListR
 		return nil, err
 	}
 
+	err = s.client.setRequestListParameters(req, nil)
+	if err != nil {
+		return nil, err
+	}
+
 	var environmentsListResponse EnvironmentListResult
 	_, err = s.client.do(ctx, req, &environmentsListResponse.Value)
 	if err != nil {
@@ -394,10 +399,6 @@ func (s *EnvironmentsServiceClient) Get(ctx context.Context, id string) (*Enviro
 	}
 
 	return &environment, nil
-}
-
-func stringValueAsPtr(v string) *string {
-	return &v
 }
 
 func (s *EnvironmentsServiceClient) Create(ctx context.Context, request *CreateEnvironmentRequest) (*Environment, error) {

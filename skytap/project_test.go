@@ -38,19 +38,19 @@ func TestCreateProject(t *testing.T) {
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
 		if createPhase {
 			if req.URL.Path != "/projects" {
-				t.Error("Bad path")
+				t.Error("Bad path:", req.URL.Path)
 			}
 			if req.Method != "POST" {
 				t.Error("Bad method")
 			}
 			body, err := ioutil.ReadAll(req.Body)
 			assert.Nil(t, err)
-			assert.JSONEq(t, `{"name":"test-project"}`, string(body))
+			assert.JSONEq(t, `{"name":"test-project","summary":"test project"}`, string(body))
 			io.WriteString(rw, `{"id": "12345", "name": "test-project"}`)
 			createPhase = false
 		} else {
 			if req.URL.Path != "/projects/12345" {
-				t.Error("Bad path")
+				t.Error("Bad path:", req.URL.Path)
 			}
 			if req.Method != "PUT" {
 				t.Error("Bad method")
@@ -78,8 +78,8 @@ func TestReadProject(t *testing.T) {
 	defer hs.Close()
 
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
-		if req.URL.Path != "/projects/12345" {
-			t.Error("Bad path")
+		if req.URL.Path != "/v2/projects/12345" {
+			t.Error("Bad path:", req.URL.Path)
 		}
 		if req.Method != "GET" {
 			t.Error("Bad method")
@@ -99,7 +99,7 @@ func TestUpdateProject(t *testing.T) {
 
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
 		if req.URL.Path != "/projects/12345" {
-			t.Error("Bad path")
+			t.Error("Bad path:", req.URL.Path)
 		}
 		if req.Method != "PUT" {
 			t.Error("Bad method")
@@ -130,7 +130,7 @@ func TestDeleteProject(t *testing.T) {
 
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
 		if req.URL.Path != "/projects/12345" {
-			t.Error("Bad path")
+			t.Error("Bad path:", req.URL.Path)
 		}
 		if req.Method != "DELETE" {
 			t.Error("Bad method")
@@ -146,8 +146,8 @@ func TestListProjects(t *testing.T) {
 	defer hs.Close()
 
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
-		if req.URL.Path != "/projects" {
-			t.Error("Bad path")
+		if req.URL.Path != "/v2/projects" {
+			t.Error("Bad path:", req.URL.Path)
 		}
 		if req.Method != "GET" {
 			t.Error("Bad method")

@@ -9,11 +9,11 @@ import (
 func TestNewDefaultSettings(t *testing.T) {
 	settings := NewDefaultSettings()
 
-	assert.Equal(t, DefaultBaseURL, settings.BaseUrl)
-	assert.Equal(t, DefaultUserAgent, settings.UserAgent)
+	assert.Equal(t, DefaultBaseURL, settings.baseUrl)
+	assert.Equal(t, DefaultUserAgent, settings.userAgent)
 
-	if assert.NotNil(t, settings.Credentials) {
-		assert.IsType(t, &NoOpCredentials{}, settings.Credentials)
+	if assert.NotNil(t, settings.credentials) {
+		assert.IsType(t, &NoOpCredentials{}, settings.credentials)
 	}
 }
 
@@ -27,19 +27,19 @@ func TestNewDefaultSettingsWithOpts(t *testing.T) {
 		WithBaseUrl(baseUrl),
 		WithCredentialsProvider(NewPasswordCredentials(username, password)))
 
-	assert.Equal(t, baseUrl, settings.BaseUrl)
-	assert.Equal(t, DefaultUserAgent, settings.UserAgent)
+	assert.Equal(t, baseUrl, settings.baseUrl)
+	assert.Equal(t, DefaultUserAgent, settings.userAgent)
 
-	if assert.NotNil(t, settings.Credentials) {
-		assert.IsType(t, &PasswordCredentials{}, settings.Credentials)
+	if assert.NotNil(t, settings.credentials) {
+		assert.IsType(t, &PasswordCredentials{}, settings.credentials)
 	}
 
 	settings = NewDefaultSettings(WithUserAgent(userAgent))
 
-	assert.Equal(t, DefaultBaseURL, settings.BaseUrl)
-	assert.Equal(t, userAgent, settings.UserAgent)
+	assert.Equal(t, DefaultBaseURL, settings.baseUrl)
+	assert.Equal(t, userAgent, settings.userAgent)
 
-	if assert.NotNil(t, settings.Credentials) {
-		assert.IsType(t, &NoOpCredentials{}, settings.Credentials)
+	if assert.NotNil(t, settings.credentials) {
+		assert.IsType(t, &NoOpCredentials{}, settings.credentials)
 	}
 }
