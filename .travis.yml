@@ -13,7 +13,7 @@ script:
 branches:
   only:
   - master
-  - ci
+  - terraform-sdk
 matrix:
   fast_finish: true
   allow_failures:
