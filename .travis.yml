@@ -3,17 +3,14 @@ sudo: required
 language: go
 go:
 - "1.11"
-before_script:
-- go get github.com/kardianos/govendor
 script:
 - make build
 - make test
-- make vendor-status
 - make vet
 branches:
   only:
-  - master
-  - terraform-sdk
+  - v2
+  - master  
 matrix:
   fast_finish: true
   allow_failures:
