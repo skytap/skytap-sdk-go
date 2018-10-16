@@ -92,6 +92,7 @@ const EXAMPLE_ENVIRONMENT = `{
     "schedule_count": 0,
     "vpn_count": 0,
     "outbound_traffic": false,
+    "routable": false,
     "vms": [
         {
             "id": "36858580",
@@ -128,10 +129,8 @@ const EXAMPLE_ENVIRONMENT = `{
                 "nested_virtualization": false,
                 "architecture": "x86"
             },
-            "error": "vm error",
-            "error_details": [
-                "vm error details"
-            ],
+            "error": false,
+            "error_details": false,
             "asset_id": "1",
             "hardware_version": 11,
             "max_hardware_version": 11,
@@ -469,7 +468,7 @@ func TestDeleteEnvironment(t *testing.T) {
 	defer hs.Close()
 
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
-		if req.URL.Path != "/v2/configurations/456" {
+		if req.URL.Path != "/configurations/456" {
 			t.Error("Bad path")
 		}
 		if req.Method != "DELETE" {

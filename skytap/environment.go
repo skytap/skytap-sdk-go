@@ -71,6 +71,7 @@ type Environment struct {
 	ScheduleCount           *int                 `json:"schedule_count"`
 	VpnCount                *int                 `json:"vpn_count"`
 	OutboundTraffic         *bool                `json:"outbound_traffic"`
+	Routable                *bool                `json:"routable"`
 	Vms                     []Vm                 `json:"vms"`
 	Networks                []Network            `json:"networks"`
 	ContainersCount         *int                 `json:"containers_count"`
@@ -108,8 +109,8 @@ type Vm struct {
 	Runstate               *VmRunstate  `json:"runstate"`
 	RateLimited            *bool        `json:"rate_limited"`
 	Hardware               *Hardware    `json:"hardware"`
-	Error                  *string      `json:"error"`
-	ErrorDetails           []string     `json:"error_details"`
+	Error                  *bool        `json:"error"`
+	ErrorDetails           *bool        `json:"error_details"`
 	AssetID                *string      `json:"asset_id"`
 	HardwareVersion        *int         `json:"hardware_version"`
 	MaxHardwareVersion     *int         `json:"max_hardware_version"`
@@ -343,7 +344,7 @@ type CreateEnvironmentRequest struct {
 	ProjectId       *string `json:"project_id,omitempty"`
 	Name            *string `json:"name,omitempty"`
 	Description     *string `json:"description,omitempty"`
-	Owner           *int    `json:"owner,omitempty"`
+	Owner           *string `json:"owner,omitempty"`
 	OutboundTraffic *bool   `json:"outbound_traffic,omitempty"`
 	Routable        *bool   `json:"routable,omitempty"`
 	SuspendOnIdle   *int    `json:"suspend_on_idle,omitempty"`
@@ -355,7 +356,7 @@ type CreateEnvironmentRequest struct {
 type UpdateEnvironmentRequest struct {
 	Name            *string `json:"name,omitempty"`
 	Description     *string `json:"description,omitempty"`
-	Owner           *int    `json:"owner,omitempty"`
+	Owner           *string `json:"owner,omitempty"`
 	OutboundTraffic *bool   `json:"outbound_traffic,omitempty"`
 	Routable        *bool   `json:"routable,omitempty"`
 	SuspendOnIdle   *int    `json:"suspend_on_idle,omitempty"`
@@ -452,7 +453,7 @@ func (s *EnvironmentsServiceClient) Update(ctx context.Context, id string, updat
 }
 
 func (s *EnvironmentsServiceClient) Delete(ctx context.Context, id string) error {
-	path := fmt.Sprintf("%s/%s", environmentBasePath, id)
+	path := fmt.Sprintf("%s/%s", environmentLegacyBasePath, id)
 
 	req, err := s.client.newRequest(ctx, "DELETE", path, nil)
 	if err != nil {
