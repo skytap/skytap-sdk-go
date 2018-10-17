@@ -46,7 +46,7 @@ func TestCreateProject(t *testing.T) {
 			body, err := ioutil.ReadAll(req.Body)
 			assert.Nil(t, err)
 			assert.JSONEq(t, `{"name":"test-project","summary":"test project"}`, string(body))
-			io.WriteString(rw, `{"id": "12345", "name": "test-project"}`)
+			io.WriteString(rw, `{"id": 12345, "name": "test-project"}`)
 			createPhase = false
 		} else {
 			if req.URL.Path != "/projects/12345" {
@@ -57,8 +57,8 @@ func TestCreateProject(t *testing.T) {
 			}
 			body, err := ioutil.ReadAll(req.Body)
 			assert.Nil(t, err)
-			assert.JSONEq(t, `{"id": "12345","name":"test-project","summary":"test project"}`, string(body))
-			io.WriteString(rw, `{"id": "12345", "name": "test-project", "summary": "test project"}`)
+			assert.JSONEq(t, `{"id": 12345,"name":"test-project","summary":"test project"}`, string(body))
+			io.WriteString(rw, `{"id": 12345, "name": "test-project", "summary": "test project"}`)
 		}
 	}
 
@@ -84,13 +84,13 @@ func TestReadProject(t *testing.T) {
 		if req.Method != "GET" {
 			t.Error("Bad method")
 		}
-		io.WriteString(rw, `{"id": "12345", "name": "test-project", "summary": "test project"}`)
+		io.WriteString(rw, `{"id": 12345, "name": "test-project", "summary": "test project"}`)
 	}
 
-	projectRead, err := skytap.Projects.Get(context.Background(), "12345")
+	projectRead, err := skytap.Projects.Get(context.Background(), 12345)
 
 	assert.Nil(t, err)
-	assert.Equal(t, &Project{ID: strToPtr("12345"), Name: strToPtr("test-project"), Summary: strToPtr("test project")}, projectRead)
+	assert.Equal(t, &Project{ID: intToPtr(12345), Name: strToPtr("test-project"), Summary: strToPtr("test project")}, projectRead)
 }
 
 func TestUpdateProject(t *testing.T) {
@@ -106,19 +106,19 @@ func TestUpdateProject(t *testing.T) {
 		}
 		body, err := ioutil.ReadAll(req.Body)
 		assert.Nil(t, err)
-		assert.JSONEq(t, `{"id": "12345","name":"updated name","summary":"updated summary"}`, string(body))
-		io.WriteString(rw, `{"id": "12345", "name": "updated name", "summary": "updated summary"}`)
+		assert.JSONEq(t, `{"id": 12345,"name":"updated name","summary":"updated summary"}`, string(body))
+		io.WriteString(rw, `{"id": 12345, "name": "updated name", "summary": "updated summary"}`)
 	}
 
 	opts := &Project{
-		ID:      strToPtr("12345"),
+		ID:      intToPtr(12345),
 		Name:    strToPtr("updated name"),
 		Summary: strToPtr("updated summary"),
 	}
 
-	projectUpdate, err := skytap.Projects.Update(context.Background(), "12345", opts)
+	projectUpdate, err := skytap.Projects.Update(context.Background(), 12345, opts)
 
-	expectedResult := &Project{ID: strToPtr("12345"), Name: strToPtr("updated name"), Summary: strToPtr("updated summary")}
+	expectedResult := &Project{ID: intToPtr(12345), Name: strToPtr("updated name"), Summary: strToPtr("updated summary")}
 
 	assert.Nil(t, err)
 	assert.Equal(t, expectedResult, projectUpdate)
@@ -137,7 +137,7 @@ func TestDeleteProject(t *testing.T) {
 		}
 	}
 
-	err := skytap.Projects.Delete(context.Background(), "12345")
+	err := skytap.Projects.Delete(context.Background(), 12345)
 	assert.Nil(t, err)
 }
 
@@ -153,7 +153,7 @@ func TestListProjects(t *testing.T) {
 			t.Error("Bad method")
 		}
 		io.WriteString(rw, `[{
-        "id": "12345",
+        "id": 12345,
         "url": "https://cloud.skytap.com/projects/12345",
         "name": "updated name",
         "summary": "updated summary",
