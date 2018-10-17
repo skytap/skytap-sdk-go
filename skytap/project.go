@@ -27,7 +27,7 @@ type ProjectsServiceClient struct {
 
 // Project resource struct definitions
 type Project struct {
-	ID                 *int         `json:"id,omitempty"`
+	ID                 *int         `json:"id,omitempty,string"`
 	Name               *string      `json:"name,omitempty"`
 	Summary            *string      `json:"summary,omitempty"`
 	AutoAddRoleName    *ProjectRole `json:"auto_add_role_name,omitempty"`
