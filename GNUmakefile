@@ -36,5 +36,8 @@ test-compile:
 	fi
 	go test -c $(TEST) $(TESTARGS)
 
-.PHONY: build test vet fmt fmtcheck test-compile
+lint:
+	golint skytap
+
+.PHONY: build test vet fmt fmtcheck test-compile lint
 

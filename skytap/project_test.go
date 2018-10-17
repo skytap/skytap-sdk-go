@@ -63,14 +63,14 @@ func TestCreateProject(t *testing.T) {
 	}
 
 	opts := Project{
-		Name:    stStringPtr("test-project"),
-		Summary: stStringPtr("test project"),
+		Name:    strToPtr("test-project"),
+		Summary: strToPtr("test project"),
 	}
 
 	project, err := skytap.Projects.Create(context.Background(), &opts)
 
 	assert.Nil(t, err)
-	assert.Equal(t, &Project{ID: project.ID, Name: stStringPtr("test-project"), Summary: stStringPtr("test project")}, project)
+	assert.Equal(t, &Project{ID: project.ID, Name: strToPtr("test-project"), Summary: strToPtr("test project")}, project)
 }
 
 func TestReadProject(t *testing.T) {
@@ -90,7 +90,7 @@ func TestReadProject(t *testing.T) {
 	projectRead, err := skytap.Projects.Get(context.Background(), "12345")
 
 	assert.Nil(t, err)
-	assert.Equal(t, &Project{ID: stStringPtr("12345"), Name: stStringPtr("test-project"), Summary: stStringPtr("test project")}, projectRead)
+	assert.Equal(t, &Project{ID: strToPtr("12345"), Name: strToPtr("test-project"), Summary: strToPtr("test project")}, projectRead)
 }
 
 func TestUpdateProject(t *testing.T) {
@@ -111,14 +111,14 @@ func TestUpdateProject(t *testing.T) {
 	}
 
 	opts := &Project{
-		ID:      stStringPtr("12345"),
-		Name:    stStringPtr("updated name"),
-		Summary: stStringPtr("updated summary"),
+		ID:      strToPtr("12345"),
+		Name:    strToPtr("updated name"),
+		Summary: strToPtr("updated summary"),
 	}
 
 	projectUpdate, err := skytap.Projects.Update(context.Background(), "12345", opts)
 
-	expectedResult := &Project{ID: stStringPtr("12345"), Name: stStringPtr("updated name"), Summary: stStringPtr("updated summary")}
+	expectedResult := &Project{ID: strToPtr("12345"), Name: strToPtr("updated name"), Summary: strToPtr("updated summary")}
 
 	assert.Nil(t, err)
 	assert.Equal(t, expectedResult, projectUpdate)

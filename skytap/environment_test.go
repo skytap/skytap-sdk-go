@@ -389,8 +389,8 @@ func TestCreateEnvironment(t *testing.T) {
 	}
 
 	opts := &CreateEnvironmentRequest{
-		TemplateID:  stStringPtr("12345"),
-		Description: stStringPtr("test environment"),
+		TemplateID:  strToPtr("12345"),
+		Description: strToPtr("test environment"),
 	}
 
 	environment, err := skytap.Environments.Create(context.Background(), opts)
@@ -454,7 +454,7 @@ func TestUpdateEnvironment(t *testing.T) {
 	}
 
 	opts := &UpdateEnvironmentRequest{
-		Description: stStringPtr(*environment.Description),
+		Description: strToPtr(*environment.Description),
 	}
 
 	environmentUpdate, err := skytap.Environments.Update(context.Background(), "456", opts)
