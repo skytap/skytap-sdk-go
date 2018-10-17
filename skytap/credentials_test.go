@@ -37,10 +37,10 @@ func TestApiTokenCredentials(t *testing.T) {
 	token := "token"
 	header := "Basic dXNlcjp0b2tlbg=="
 
-	cred := NewApiTokenCredentials(username, token)
+	cred := NewAPITokenCredentials(username, token)
 
 	assert.Equal(t, username, cred.Username)
-	assert.Equal(t, token, cred.ApiToken)
+	assert.Equal(t, token, cred.APIToken)
 
 	result, err := cred.Retrieve(context.Background())
 

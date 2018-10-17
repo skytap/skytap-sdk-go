@@ -4,6 +4,8 @@ language: go
 go:
 - "1.11"
 script:
+- go get -u golang.org/x/lint/golint
+- golint skytap
 - make build
 - make test
 - make vet

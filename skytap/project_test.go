@@ -20,7 +20,7 @@ func createClient(t *testing.T) (*Client, *httptest.Server, *func(rw http.Respon
 	var user = "SKYTAP_USER"
 	var token = "SKYTAP_ACCESS_TOKEN"
 
-	settings := NewDefaultSettings(WithBaseUrl(hs.URL), WithCredentialsProvider(NewApiTokenCredentials(user, token)))
+	settings := NewDefaultSettings(WithBaseURL(hs.URL), WithCredentialsProvider(NewAPITokenCredentials(user, token)))
 
 	skytap, err := NewClient(settings)
 
@@ -63,14 +63,14 @@ func TestCreateProject(t *testing.T) {
 	}
 
 	opts := Project{
-		Name:    StringPtr("test-project"),
-		Summary: StringPtr("test project"),
+		Name:    stStringPtr("test-project"),
+		Summary: stStringPtr("test project"),
 	}
 
 	project, err := skytap.Projects.Create(context.Background(), &opts)
 
 	assert.Nil(t, err)
-	assert.Equal(t, &Project{Id: project.Id, Name: StringPtr("test-project"), Summary: StringPtr("test project")}, project)
+	assert.Equal(t, &Project{ID: project.ID, Name: stStringPtr("test-project"), Summary: stStringPtr("test project")}, project)
 }
 
 func TestReadProject(t *testing.T) {
@@ -90,7 +90,7 @@ func TestReadProject(t *testing.T) {
 	projectRead, err := skytap.Projects.Get(context.Background(), "12345")
 
 	assert.Nil(t, err)
-	assert.Equal(t, &Project{Id: StringPtr("12345"), Name: StringPtr("test-project"), Summary: StringPtr("test project")}, projectRead)
+	assert.Equal(t, &Project{ID: stStringPtr("12345"), Name: stStringPtr("test-project"), Summary: stStringPtr("test project")}, projectRead)
 }
 
 func TestUpdateProject(t *testing.T) {
@@ -111,14 +111,14 @@ func TestUpdateProject(t *testing.T) {
 	}
 
 	opts := &Project{
-		Id:      StringPtr("12345"),
-		Name:    StringPtr("updated name"),
-		Summary: StringPtr("updated summary"),
+		ID:      stStringPtr("12345"),
+		Name:    stStringPtr("updated name"),
+		Summary: stStringPtr("updated summary"),
 	}
 
 	projectUpdate, err := skytap.Projects.Update(context.Background(), "12345", opts)
 
-	expectedResult := &Project{Id: StringPtr("12345"), Name: StringPtr("updated name"), Summary: StringPtr("updated summary")}
+	expectedResult := &Project{ID: stStringPtr("12345"), Name: stStringPtr("updated name"), Summary: stStringPtr("updated summary")}
 
 	assert.Nil(t, err)
 	assert.Equal(t, expectedResult, projectUpdate)

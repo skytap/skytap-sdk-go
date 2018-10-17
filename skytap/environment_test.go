@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const EXAMPLE_ENVIRONMENT = `{
+const exampleEnvironment = `{
     "id": "456",
     "url": "https://cloud.skytap.com/v2/configurations/456",
     "name": "No VM",
@@ -384,13 +384,13 @@ func TestCreateEnvironment(t *testing.T) {
 			assert.Nil(t, err)
 			assert.JSONEq(t, `{"description": "test environment"}`, string(body))
 
-			io.WriteString(rw, EXAMPLE_ENVIRONMENT)
+			io.WriteString(rw, exampleEnvironment)
 		}
 	}
 
 	opts := &CreateEnvironmentRequest{
-		TemplateId:  StringPtr("12345"),
-		Description: StringPtr("test environment"),
+		TemplateID:  stStringPtr("12345"),
+		Description: stStringPtr("test environment"),
 	}
 
 	environment, err := skytap.Environments.Create(context.Background(), opts)
@@ -399,7 +399,7 @@ func TestCreateEnvironment(t *testing.T) {
 
 	var environmentExpected Environment
 
-	err = json.Unmarshal([]byte(EXAMPLE_ENVIRONMENT), &environmentExpected)
+	err = json.Unmarshal([]byte(exampleEnvironment), &environmentExpected)
 
 	assert.Equal(t, environmentExpected, *environment)
 }
@@ -415,7 +415,7 @@ func TestReadEnvironment(t *testing.T) {
 		if req.Method != "GET" {
 			t.Error("Bad method")
 		}
-		io.WriteString(rw, EXAMPLE_ENVIRONMENT)
+		io.WriteString(rw, exampleEnvironment)
 	}
 
 	environment, err := skytap.Environments.Get(context.Background(), "456")
@@ -423,7 +423,7 @@ func TestReadEnvironment(t *testing.T) {
 	assert.Nil(t, err)
 	var environmentExpected Environment
 
-	err = json.Unmarshal([]byte(EXAMPLE_ENVIRONMENT), &environmentExpected)
+	err = json.Unmarshal([]byte(exampleEnvironment), &environmentExpected)
 
 	assert.Equal(t, environmentExpected, *environment)
 }
@@ -433,7 +433,7 @@ func TestUpdateEnvironment(t *testing.T) {
 	defer hs.Close()
 
 	var environment Environment
-	json.Unmarshal([]byte(EXAMPLE_ENVIRONMENT), &environment)
+	json.Unmarshal([]byte(exampleEnvironment), &environment)
 	*environment.Description = "updated environment"
 
 	bytes, err := json.Marshal(&environment)
@@ -454,7 +454,7 @@ func TestUpdateEnvironment(t *testing.T) {
 	}
 
 	opts := &UpdateEnvironmentRequest{
-		Description: StringPtr(*environment.Description),
+		Description: stStringPtr(*environment.Description),
 	}
 
 	environmentUpdate, err := skytap.Environments.Update(context.Background(), "456", opts)
@@ -491,7 +491,7 @@ func TestListEnvironments(t *testing.T) {
 		if req.Method != "GET" {
 			t.Error("Bad method")
 		}
-		io.WriteString(rw, fmt.Sprintf(`[%+v]`, EXAMPLE_ENVIRONMENT))
+		io.WriteString(rw, fmt.Sprintf(`[%+v]`, exampleEnvironment))
 	}
 
 	result, err := skytap.Environments.List(context.Background())

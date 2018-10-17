@@ -14,25 +14,31 @@ type CredentialsProvider interface {
 	Retrieve(ctx context.Context) (string, error)
 }
 
+// NoOpCredentials is used when no credentials are required
 type NoOpCredentials struct{}
 
+// Retrieve the credentials
 func (c *NoOpCredentials) Retrieve(ctx context.Context) (string, error) {
 	return "", nil
 }
 
+// NewNoOpCredentials creates a new no op credentials instance
 func NewNoOpCredentials() *NoOpCredentials {
 	return &NoOpCredentials{}
 }
 
+// PasswordCredentials describes the username password data
 type PasswordCredentials struct {
 	Username string
 	Password string
 }
 
+// Retrieve the username password data
 func (c *PasswordCredentials) Retrieve(ctx context.Context) (string, error) {
 	return buildBasicAuth(c.Username, c.Password), nil
 }
 
+// NewPasswordCredentials create a new username and password credentials instance
 func NewPasswordCredentials(username, password string) *PasswordCredentials {
 	return &PasswordCredentials{
 		Username: username,
@@ -40,24 +46,26 @@ func NewPasswordCredentials(username, password string) *PasswordCredentials {
 	}
 }
 
-type ApiTokenCredentials struct {
+// APITokenCredentials is ued when the credentials used are the username and api token data
+type APITokenCredentials struct {
 	Username string
-	ApiToken string
+	APIToken string
 }
 
-func (c *ApiTokenCredentials) Retrieve(ctx context.Context) (string, error) {
-	return buildBasicAuth(c.Username, c.ApiToken), nil
+// Retrieve the username and api token data
+func (c *APITokenCredentials) Retrieve(ctx context.Context) (string, error) {
+	return buildBasicAuth(c.Username, c.APIToken), nil
 }
 
-func NewApiTokenCredentials(username, apiToken string) *ApiTokenCredentials {
-	return &ApiTokenCredentials{
+// NewAPITokenCredentials creates a new username and api token instance
+func NewAPITokenCredentials(username, apiToken string) *APITokenCredentials {
+	return &APITokenCredentials{
 		Username: username,
-		ApiToken: apiToken,
+		APIToken: apiToken,
 	}
 }
 
 // Helper functions
-
 func buildBasicAuth(username, secret string) string {
 	auth := username + ":" + secret
 	return fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte(auth)))

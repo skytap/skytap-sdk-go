@@ -9,7 +9,7 @@ import (
 func TestNewDefaultSettings(t *testing.T) {
 	settings := NewDefaultSettings()
 
-	assert.Equal(t, DefaultBaseURL, settings.baseUrl)
+	assert.Equal(t, DefaultBaseURL, settings.baseURL)
 	assert.Equal(t, DefaultUserAgent, settings.userAgent)
 
 	if assert.NotNil(t, settings.credentials) {
@@ -18,16 +18,16 @@ func TestNewDefaultSettings(t *testing.T) {
 }
 
 func TestNewDefaultSettingsWithOpts(t *testing.T) {
-	baseUrl := "https://url.com"
+	baseURL := "https://url.com"
 	userAgent := "testclient/1.0.0"
 	username := "user"
 	password := "password"
 
 	settings := NewDefaultSettings(
-		WithBaseUrl(baseUrl),
+		WithBaseURL(baseURL),
 		WithCredentialsProvider(NewPasswordCredentials(username, password)))
 
-	assert.Equal(t, baseUrl, settings.baseUrl)
+	assert.Equal(t, baseURL, settings.baseURL)
 	assert.Equal(t, DefaultUserAgent, settings.userAgent)
 
 	if assert.NotNil(t, settings.credentials) {
@@ -36,7 +36,7 @@ func TestNewDefaultSettingsWithOpts(t *testing.T) {
 
 	settings = NewDefaultSettings(WithUserAgent(userAgent))
 
-	assert.Equal(t, DefaultBaseURL, settings.baseUrl)
+	assert.Equal(t, DefaultBaseURL, settings.baseURL)
 	assert.Equal(t, userAgent, settings.userAgent)
 
 	if assert.NotNil(t, settings.credentials) {
