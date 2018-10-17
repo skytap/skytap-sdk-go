@@ -27,25 +27,6 @@ func NewNoOpCredentials() *NoOpCredentials {
 	return &NoOpCredentials{}
 }
 
-// PasswordCredentials describes the username password data
-type PasswordCredentials struct {
-	Username string
-	Password string
-}
-
-// Retrieve the username password data
-func (c *PasswordCredentials) Retrieve(ctx context.Context) (string, error) {
-	return buildBasicAuth(c.Username, c.Password), nil
-}
-
-// NewPasswordCredentials create a new username and password credentials instance
-func NewPasswordCredentials(username, password string) *PasswordCredentials {
-	return &PasswordCredentials{
-		Username: username,
-		Password: password,
-	}
-}
-
 // APITokenCredentials is ued when the credentials used are the username and api token data
 type APITokenCredentials struct {
 	Username string
