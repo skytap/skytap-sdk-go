@@ -1,0 +1,117 @@
+{
+  "id": "1001",
+  "name": "Ubuntu VM",
+  "runstate": "stopped",
+  "rate_limited": false,
+  "hardware": {
+    "cpus": 1,
+    "supports_multicore": true,
+    "cpus_per_socket": 1,
+    "ram": 1024,
+    "svms": 1,
+    "guestOS": "centos-64",
+    "max_cpus": 12,
+    "min_ram": 256,
+    "max_ram": 262144,
+    "vnc_keymap": null,
+    "uuid": null,
+    "disks": [
+      {
+        "id": "disk-5971736-13548234-scsi-0-0",
+        "size": 20480,
+        "type": "SCSI",
+        "controller": "0",
+        "lun": "0"
+      }
+    ],
+    "storage": 20480,
+    "upgradable": true,
+    "instance_type": null,
+    "time_sync_enabled": true,
+    "rtc_start_time": null,
+    "copy_paste_enabled": true,
+    "nested_virtualization": false,
+    "architecture": "x86"
+  },
+  "error": false,
+  "asset_id": null,
+  "hardware_version": 10,
+  "max_hardware_version": 11,
+  "interfaces": [
+    {
+      "id": "nic-5971736-13548234-0",
+      "ip": "10.0.0.1",
+      "hostname": "host-1",
+      "mac": "00:50:56:2D:D5:CA",
+      "services_count": 0,
+      "services": [],
+      "public_ips_count": 0,
+      "public_ips": [],
+      "vm_id": "1001",
+      "vm_name": "vagrant host vm",
+      "status": "Powered off",
+      "nat_addresses": {
+        "network_nat_addresses": [
+          {
+            "ip_address": "10.0.4.1",
+            "network_id": "98",
+            "network_name": "Default Network",
+            "network_url": "https://cloud.skytap.com/configurations/1/networks/98",
+            "configuration_id": "1",
+            "configuration_name": "Environment 2",
+            "configuration_url": "https://cloud.skytap.com/configurations/98",
+            "viewable": true
+          }
+        ],
+        "vpn_nat_addresses": [
+          {
+            "ip_address": "10.1.150.24",
+            "vpn_id": "vpn-1",
+            "vpn_name": "VPN 1",
+            "vpn_url": "https://cloud.skytap.com/vpns/vpn-1"
+          }
+        ]
+      },
+      "network_id": "99",
+      "network_name": "Default Network",
+      "network_url": "https://cloud.skytap.com/configurations/1/networks/99",
+      "network_type": "automatic",
+      "network_subnet": "10.0.0.0/24",
+      "nic_type": "vmxnet3",
+      "promiscuous": false,
+      "secondary_ips": [],
+      "public_ip_attachments": []
+    }
+  ],
+  "notes": [],
+  "labels": [],
+  "credentials": [
+    {
+      "id": "11801130",
+      "text": "root / ChangeMe!"
+    },
+    {
+      "id": "11801132",
+      "text": "skytap / ChangeMe!"
+    }
+  ],
+  "desktop_resizable": true,
+  "local_mouse_cursor": true,
+  "maintenance_lock_engaged": false,
+  "region_backend": "skytap",
+  "created_at": "2016/12/13 11:29:56 -0800",
+  "supports_suspend": true,
+  "can_change_object_state": true,
+  "containers": null,
+  "display_server": "none",
+  "display_server_port": 0,
+  "audio_in": false,
+  "audio_out": false,
+  "smartclient_connection": {
+    "display_protocol": null
+  },
+  "configuration_url": "https://cloud.skytap.com/configurations/1",
+  "publish_set_refs": [
+    "https://cloud.skytap.com/configurations/1/publish_sets/2492910"
+  ]
+}

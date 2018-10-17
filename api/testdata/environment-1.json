@@ -1,0 +1,301 @@
+{
+  "id": "1",
+  "url": "https://cloud.skytap.com/configurations/1",
+  "name": "Environment 1",
+  "error": "",
+  "runstate": "stopped",
+  "rate_limited": false,
+  "description": "Mock data",
+  "suspend_on_idle": null,
+  "suspend_at_time": null,
+  "routable": false,
+  "vms": [
+    {
+      "id": "1001",
+      "name": "Ubuntu VM",
+      "runstate": "stopped",
+      "rate_limited": false,
+      "hardware": {
+        "cpus": 1,
+        "supports_multicore": true,
+        "cpus_per_socket": 1,
+        "ram": 1024,
+        "svms": 1,
+        "guestOS": "centos-64",
+        "max_cpus": 12,
+        "min_ram": 256,
+        "max_ram": 262144,
+        "vnc_keymap": null,
+        "uuid": null,
+        "disks": [
+          {
+            "id": "disk-5971736-13548234-scsi-0-0",
+            "size": 20480,
+            "type": "SCSI",
+            "controller": "0",
+            "lun": "0"
+          }
+        ],
+        "storage": 20480,
+        "upgradable": true,
+        "instance_type": null,
+        "time_sync_enabled": true,
+        "rtc_start_time": null,
+        "copy_paste_enabled": true,
+        "nested_virtualization": false,
+        "architecture": "x86"
+      },
+      "error": false,
+      "asset_id": null,
+      "hardware_version": 10,
+      "max_hardware_version": 11,
+      "interfaces": [
+        {
+          "id": "nic-5971736-13548234-0",
+          "ip": "10.0.0.1",
+          "hostname": "host-1",
+          "mac": "00:50:56:2D:D5:CA",
+          "services_count": 0,
+          "services": [],
+          "public_ips_count": 0,
+          "public_ips": [],
+          "vm_id": "1001",
+          "vm_name": "vagrant host vm",
+          "status": "Powered off",
+          "nat_addresses": {
+            "network_nat_addresses": [
+              {
+                "ip_address": "10.0.4.1",
+                "network_id": "98",
+                "network_name": "Default Network",
+                "network_url": "https://cloud.skytap.com/configurations/1/networks/98",
+                "configuration_id": "1",
+                "configuration_name": "Environment 2",
+                "configuration_url": "https://cloud.skytap.com/configurations/98",
+                "viewable": true
+              }
+            ],
+            "vpn_nat_addresses": [
+              {
+                "ip_address": "10.1.150.24",
+                "vpn_id": "vpn-1",
+                "vpn_name": "VPN 1",
+                "vpn_url": "https://cloud.skytap.com/vpns/vpn-1"
+              }
+            ]
+          },
+          "network_id": "99",
+          "network_name": "Default Network",
+          "network_url": "https://cloud.skytap.com/configurations/1/networks/99",
+          "network_type": "automatic",
+          "network_subnet": "10.0.0.0/24",
+          "nic_type": "vmxnet3",
+          "promiscuous": false,
+          "secondary_ips": [],
+          "public_ip_attachments": []
+        }
+      ],
+      "notes": [],
+      "labels": [],
+      "credentials": [
+        {
+          "id": "11801130",
+          "text": "root / ChangeMe!"
+        },
+        {
+          "id": "11801132",
+          "text": "skytap / ChangeMe!"
+        }
+      ],
+      "desktop_resizable": true,
+      "local_mouse_cursor": true,
+      "maintenance_lock_engaged": false,
+      "region_backend": "skytap",
+      "created_at": "2016/12/13 11:29:56 -0800",
+      "supports_suspend": true,
+      "can_change_object_state": true,
+      "containers": null,
+      "display_server": "none",
+      "display_server_port": 0,
+      "audio_in": false,
+      "audio_out": false,
+      "smartclient_connection": {
+        "display_protocol": null
+      },
+      "configuration_url": "https://cloud.skytap.com/configurations/1",
+      "publish_set_refs": [
+        "https://cloud.skytap.com/configurations/1/publish_sets/2492910"
+      ]
+    }
+  ],
+  "networks": [
+    {
+      "id": "99",
+      "url": "https://cloud.skytap.com/configurations/1/networks/99",
+      "name": "Default Network",
+      "network_type": "automatic",
+      "subnet": "10.0.0.0/24",
+      "subnet_addr": "10.0.0.0",
+      "subnet_size": 24,
+      "gateway": "10.0.0.254",
+      "primary_nameserver": null,
+      "secondary_nameserver": null,
+      "region": "US-West",
+      "nat_subnet": "10.0.4.0/22",
+      "nat_pool_size": 1022,
+      "nat_pool_remaining": 1021,
+      "domain": "skytap.example",
+      "vpn_attachments": [
+        {
+          "id": "99-vpn-1",
+          "connected": true,
+          "network": {
+            "id": "99",
+            "subnet": "10.0.0.0/24",
+            "network_name": "Default Network",
+            "configuration_id": "1"
+          },
+          "vpn": {
+            "id": "vpn-1",
+            "name": "VPN 1",
+            "enabled": true,
+            "nat_enabled": true,
+            "remote_subnets": "10.1.0.0/24, 10.1.1.0/24, 10.1.2.0/24, 10.1.4.0/24, 10.1.6.0/24, 10.1.8.0/24, 10.1.14.0/23, 10.1.16.0/24, 172.16.89.0/24, 192.168.0.0/16",
+            "remote_peer_ip": "1.2.3.4",
+            "can_reconnect": true,
+            "connection_type": "vpn"
+          }
+        }
+      ],
+      "tunnelable": true,
+      "tunnels": [
+        {
+          "id": "tunnel-6631420-11110493",
+          "status": "not_busy",
+          "error": null,
+          "source_network": {
+            "id": "99",
+            "url": "https://cloud.skytap.com/configurations/1/networks/99",
+            "name": "Default Network",
+            "network_type": "automatic",
+            "subnet": "10.0.0.0/24",
+            "subnet_addr": "10.0.0.0",
+            "subnet_size": 24,
+            "gateway": "10.0.0.254",
+            "primary_nameserver": null,
+            "secondary_nameserver": null,
+            "region": "US-West",
+            "nat_subnet": "10.0.4.0/22",
+            "nat_pool_size": 1022,
+            "nat_pool_remaining": 1021,
+            "domain": "skytap.example",
+            "vpn_attachments": [
+              {
+                "id": "99-vpn-1",
+                "connected": true,
+                "network": {
+                  "id": "99",
+                  "subnet": "10.0.0.0/24",
+                  "network_name": "Default Network",
+                  "configuration_id": "1"
+                },
+                "vpn": {
+                  "id": "vpn-1",
+                  "name": "VPN 1",
+                  "enabled": true,
+                  "nat_enabled": true,
+                  "remote_subnets": "10.1.0.0/24, 10.1.1.0/24, 10.1.2.0/24, 10.1.4.0/24, 10.1.6.0/24, 10.1.8.0/24, 10.1.14.0/23, 10.1.16.0/24, 172.16.89.0/24, 192.168.0.0/16",
+                  "remote_peer_ip": "1.2.3.4",
+                  "can_reconnect": true,
+                  "connection_type": "vpn"
+                }
+              }
+            ]
+          },
+          "target_network": {
+            "id": "98",
+            "url": "https://cloud.skytap.com/configurations/98/networks/98",
+            "name": "Default Network",
+            "network_type": "automatic",
+            "subnet": "10.0.0.0/24",
+            "subnet_addr": "10.0.0.0",
+            "subnet_size": 24,
+            "gateway": "10.0.0.254",
+            "primary_nameserver": null,
+            "secondary_nameserver": null,
+            "region": "US-West",
+            "nat_subnet": "10.0.4.0/22",
+            "nat_pool_size": 1022,
+            "nat_pool_remaining": 1021,
+            "domain": "skytap.example",
+            "vpn_attachments": [
+              {
+                "id": "98-vpn-1",
+                "connected": true,
+                "network": {
+                  "id": "98",
+                  "subnet": "10.0.0.0/24",
+                  "network_name": "Default Network",
+                  "configuration_id": "98"
+                },
+                "vpn": {
+                  "id": "vpn-1",
+                  "name": "VPN 1",
+                  "enabled": true,
+                  "nat_enabled": true,
+                  "remote_subnets": "10.1.0.0/24, 10.1.1.0/24, 10.1.2.0/24, 10.1.4.0/24, 10.1.6.0/24, 10.1.8.0/24, 10.1.14.0/23, 10.1.16.0/24, 172.16.89.0/24, 192.168.0.0/16",
+                  "remote_peer_ip": "1.2.3.4",
+                  "can_reconnect": true,
+                  "connection_type": "vpn"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "lockversion": "ed40f5c2a440bbe2cbb4a97a45edbbe690d4f054",
+  "use_smart_client": true,
+  "disable_internet": false,
+  "region": "US-West",
+  "region_backend": "skytap",
+  "owner": "https://cloud.skytap.com/users/15386",
+  "platform_errors": [],
+  "publish_sets": [
+    {
+      "id": "2492910",
+      "name": "etrue CentOS 7.2 Server - 64-bit",
+      "url": "https://cloud.skytap.com/configurations/1/publish_sets/2492910",
+      "publish_set_type": "single_url",
+      "runtime_limit": null,
+      "runtime_left_in_seconds": null,
+      "expiration_date": null,
+      "expiration_date_tz": null,
+      "start_time": null,
+      "end_time": null,
+      "time_zone": null,
+      "multiple_url": false,
+      "password": null,
+      "anonymous_smart_rdp": false,
+      "desktops_url": "https://cloud.skytap.com/vms/9570931149e0ac0d3de7d7d6a0af3a11/desktops",
+      "use_smart_client": true,
+      "vms": [
+        {
+          "id": "6751008",
+          "name": "vagrant host vm",
+          "access": "run_and_use",
+          "run_and_use": true,
+          "vm_ref": "https://cloud.skytap.com/vms/1001",
+          "error": false,
+          "desktop_url": "https://cloud.skytap.com/vms/9570931149e0ac0d3de7d7d6a0af3a11/desktops"
+        }
+      ],
+      "custom_content_enabled": false
+    }
+  ],
+  "shutdown_on_idle": null,
+  "shutdown_at_time": null,
+  "containers_count": 0,
+  "container_hosts_count": 0
+}

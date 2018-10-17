@@ -1,0 +1,134 @@
+{
+  "id": "vpn-1",
+  "url": "https://cloud.skytap.com/vpns/vpn-1",
+  "name": "VPN 1",
+  "connection_type": "vpn",
+  "status": "active",
+  "enabled": true,
+  "remote_subnets": [
+    {
+      "id": "10.1.0.0/24",
+      "cidr_block": "10.1.0.0/24",
+      "excluded": false
+    },
+    {
+      "id": "10.1.1.0/24",
+      "cidr_block": "10.1.1.0/24",
+      "excluded": false
+    },
+    {
+      "id": "10.1.2.0/24",
+      "cidr_block": "10.1.2.0/24",
+      "excluded": false
+    },
+    {
+      "id": "10.1.4.0/24",
+      "cidr_block": "10.1.4.0/24",
+      "excluded": false
+    },
+    {
+      "id": "10.1.6.0/24",
+      "cidr_block": "10.1.6.0/24",
+      "excluded": false
+    },
+    {
+      "id": "10.1.8.0/24",
+      "cidr_block": "10.1.8.0/24",
+      "excluded": false
+    },
+    {
+      "id": "10.1.14.0/23",
+      "cidr_block": "10.1.14.0/23",
+      "excluded": false
+    },
+    {
+      "id": "10.1.16.0/24",
+      "cidr_block": "10.1.16.0/24",
+      "excluded": false
+    },
+    {
+      "id": "172.16.89.0/24",
+      "cidr_block": "172.16.89.0/24",
+      "excluded": false
+    },
+    {
+      "id": "192.168.0.0/16",
+      "cidr_block": "192.168.0.0/16",
+      "excluded": false
+    }
+  ],
+  "local_subnet": "10.1.128.0/19",
+  "nat_local_subnet": true,
+  "route_based": true,
+  "default_access_level": "use",
+  "remote_peer_ip": "1.2.3.4",
+  "region": "US-West",
+  "vvr": true,
+  "nat_pool_size": 8190,
+  "nat_pool_remaining": 2164,
+  "error": null,
+  "local_peer_ip": "199.204.218.76",
+  "attached_network_count": 706,
+  "connected_network_count": 682,
+  "network_attachments": [
+    {
+      "id": "11435328-vpn-1",
+      "connected": true,
+      "network": {
+        "id": "11435328",
+        "subnet": "10.0.0.0/24",
+        "network_name": "Management 90 UD",
+        "configuration_id": "19675320"
+      },
+      "vpn": {
+        "id": "vpn-1",
+        "name": "VPN 1",
+        "enabled": true,
+        "nat_enabled": true,
+        "remote_subnets": "10.1.0.0/24, 10.1.1.0/24, 10.1.2.0/24, 10.1.4.0/24, 10.1.6.0/24, 10.1.8.0/24, 10.1.14.0/23, 10.1.16.0/24, 172.16.89.0/24, 192.168.0.0/16",
+        "remote_peer_ip": "1.2.3.4",
+        "can_reconnect": true,
+        "connection_type": "vpn"
+      }
+    },
+    {
+      "id": "11511570-vpn-1",
+      "connected": true,
+      "network": {
+        "id": "11511570",
+        "subnet": "10.0.0.0/24",
+        "network_name": "Default Network",
+        "configuration_id": "19798884"
+      },
+      "vpn": {
+        "id": "vpn-1",
+        "name": "VPN 1",
+        "enabled": true,
+        "nat_enabled": true,
+        "remote_subnets": "10.1.0.0/24, 10.1.1.0/24, 10.1.2.0/24, 10.1.4.0/24, 10.1.6.0/24, 10.1.8.0/24, 10.1.14.0/23, 10.1.16.0/24, 172.16.89.0/24, 192.168.0.0/16",
+        "remote_peer_ip": "1.2.3.4",
+        "can_reconnect": true,
+        "connection_type": "vpn"
+      }
+    }
+  ],
+  "test_results": {
+    "phase1": true,
+    "phase2": true,
+    "ping": true,
+    "connect": true
+  },
+  "phase_1_encryption_algorithm": "aes 256",
+  "phase_1_hash_algorithm": "sha1",
+  "phase_1_sa_lifetime": 28800,
+  "phase_1_dh_group": "modp1536",
+  "phase_2_encryption_algorithm": "aes_gcm",
+  "phase_2_authentication_algorithm": null,
+  "phase_2_perfect_forward_secrecy": true,
+  "phase_2_pfs_group": "modp1536",
+  "phase_2_sa_lifetime": 3600,
+  "sa_policy_level": null,
+  "maximum_segment_size": null,
+  "dpd_enabled": true,
+  "region_backend": "skytap"
+}
