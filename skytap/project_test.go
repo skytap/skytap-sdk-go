@@ -87,10 +87,10 @@ func TestReadProject(t *testing.T) {
 		io.WriteString(rw, `{"id": "12345", "name": "test-project", "summary": "test project"}`)
 	}
 
-	projectRead, err := skytap.Projects.Get(context.Background(), "12345")
+	projectRead, err := skytap.Projects.Get(context.Background(), 12345)
 
 	assert.Nil(t, err)
-	assert.Equal(t, &Project{ID: strToPtr("12345"), Name: strToPtr("test-project"), Summary: strToPtr("test project")}, projectRead)
+	assert.Equal(t, &Project{ID: intToPtr(12345), Name: strToPtr("test-project"), Summary: strToPtr("test project")}, projectRead)
 }
 
 func TestUpdateProject(t *testing.T) {
@@ -111,14 +111,14 @@ func TestUpdateProject(t *testing.T) {
 	}
 
 	opts := &Project{
-		ID:      strToPtr("12345"),
+		ID:      intToPtr(12345),
 		Name:    strToPtr("updated name"),
 		Summary: strToPtr("updated summary"),
 	}
 
-	projectUpdate, err := skytap.Projects.Update(context.Background(), "12345", opts)
+	projectUpdate, err := skytap.Projects.Update(context.Background(), 12345, opts)
 
-	expectedResult := &Project{ID: strToPtr("12345"), Name: strToPtr("updated name"), Summary: strToPtr("updated summary")}
+	expectedResult := &Project{ID: intToPtr(12345), Name: strToPtr("updated name"), Summary: strToPtr("updated summary")}
 
 	assert.Nil(t, err)
 	assert.Equal(t, expectedResult, projectUpdate)
@@ -137,7 +137,7 @@ func TestDeleteProject(t *testing.T) {
 		}
 	}
 
-	err := skytap.Projects.Delete(context.Background(), "12345")
+	err := skytap.Projects.Delete(context.Background(), 12345)
 	assert.Nil(t, err)
 }
 

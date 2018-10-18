@@ -370,7 +370,7 @@ func TestCreateEnvironment(t *testing.T) {
 			}
 			body, err := ioutil.ReadAll(req.Body)
 			assert.Nil(t, err)
-			assert.JSONEq(t, fmt.Sprintf(`{"template_id":%q, "description":"test environment"}`, "12345"), string(body))
+			assert.JSONEq(t, fmt.Sprintf(`{"template_id":%q, "project_id":%d, "description":"test environment"}`, "12345", 12345), string(body))
 			io.WriteString(rw, `{"id": "456"}`)
 			createPhase = false
 		} else {
@@ -390,6 +390,7 @@ func TestCreateEnvironment(t *testing.T) {
 
 	opts := &CreateEnvironmentRequest{
 		TemplateID:  strToPtr("12345"),
+		ProjectID:   intToPtr(12345),
 		Description: strToPtr("test environment"),
 	}
 
