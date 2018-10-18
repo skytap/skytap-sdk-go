@@ -21,17 +21,17 @@ func TestNewDefaultSettingsWithOpts(t *testing.T) {
 	baseURL := "https://url.com"
 	userAgent := "testclient/1.0.0"
 	username := "user"
-	password := "password"
+	token := "token"
 
 	settings := NewDefaultSettings(
 		WithBaseURL(baseURL),
-		WithCredentialsProvider(NewPasswordCredentials(username, password)))
+		WithCredentialsProvider(NewAPITokenCredentials(username, token)))
 
 	assert.Equal(t, baseURL, settings.baseURL)
 	assert.Equal(t, DefaultUserAgent, settings.userAgent)
 
 	if assert.NotNil(t, settings.credentials) {
-		assert.IsType(t, &PasswordCredentials{}, settings.credentials)
+		assert.IsType(t, &APITokenCredentials{}, settings.credentials)
 	}
 
 	settings = NewDefaultSettings(WithUserAgent(userAgent))
