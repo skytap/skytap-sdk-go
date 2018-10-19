@@ -171,51 +171,45 @@ func (c *Client) newRequest(ctx context.Context, method, path string, body inter
 }
 
 func (c *Client) do(ctx context.Context, req *http.Request, v interface{}) (*http.Response, error) {
-	resp, err := c.doWithRetry(ctx, req, c.retryCount)
+	var resp *http.Response
+	var err error
+	var makeRequest = true
 
-	if err != nil {
-		return resp, err
-	}
+	for i := 0; i < c.retryCount+1 && makeRequest; i++ {
+		resp, err = c.hc.Do(req.WithContext(ctx))
 
-	if v != nil {
-		defer resp.Body.Close()
-		if w, ok := v.(io.Writer); ok {
-			_, err = io.Copy(w, resp.Body)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			err = json.NewDecoder(resp.Body).Decode(v)
-			if err != nil {
-				return nil, err
-			}
+		if err != nil {
+			break
 		}
+
+		err = c.checkResponse(resp)
+
+		if err == nil {
+			readResponseBody(resp, v)
+			makeRequest = false
+		} else if err.(*ErrorResponse).RequiresRetry {
+			seconds := *err.(*ErrorResponse).RetryAfter
+			log.Printf("retrying after %d second(s)\n", seconds)
+			time.Sleep(time.Duration(seconds) * time.Second)
+		} else {
+			makeRequest = false
+		}
+		resp.Body.Close()
 	}
 
 	return resp, err
 }
 
-func (c *Client) doWithRetry(ctx context.Context, req *http.Request, retryCount int) (*http.Response, error) {
-	resp, err := c.hc.Do(req.WithContext(ctx))
-
-	if err != nil {
-		return nil, err
-	}
-
-	err = c.checkResponse(resp)
-
-	if err != nil {
-		resp.Body.Close()
-		if err.(*ErrorResponse).RequiresRetry && retryCount > 0 {
-			retryCount--
-			seconds := *err.(*ErrorResponse).RetryAfter
-			log.Printf("retrying after %d seconds\n", seconds)
-			time.Sleep(time.Duration(seconds) * time.Second)
-			return c.doWithRetry(ctx, req, retryCount)
+func readResponseBody(resp *http.Response, v interface{}) error {
+	var err error
+	if v != nil {
+		if w, ok := v.(io.Writer); ok {
+			_, err = io.Copy(w, resp.Body)
+		} else {
+			err = json.NewDecoder(resp.Body).Decode(v)
 		}
 	}
-
-	return resp, err
+	return err
 }
 
 func (c *Client) setRequestListParameters(req *http.Request, params *ListParameters) error {
@@ -252,7 +246,7 @@ func (c *Client) setRequestListParameters(req *http.Request, params *ListParamet
 // error if it has a status code outside the 200 range. API error responses are expected to have either no response
 // body, or a JSON response body that maps to ErrorResponse.
 func (c *Client) checkResponse(r *http.Response) error {
-	if code := r.StatusCode; code >= 200 && code <= 299 {
+	if code := r.StatusCode; code >= http.StatusOK && code <= 299 {
 		return nil
 	}
 
@@ -269,7 +263,9 @@ func (c *Client) checkResponse(r *http.Response) error {
 		errorResponse.RequestID = strToPtr(requestID)
 	}
 
-	if code := r.StatusCode; code == http.StatusLocked || code == http.StatusTooManyRequests || code >= 500 && code <= 599 {
+	if code := r.StatusCode; code == http.StatusLocked ||
+		code == http.StatusTooManyRequests ||
+		code >= http.StatusInternalServerError && code <= 599 {
 		if retryAfter := r.Header.Get(headerRetryAfter); retryAfter != "" {
 			val, err := strconv.Atoi(retryAfter)
 			if err == nil {

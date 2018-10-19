@@ -51,7 +51,7 @@ func TestRetryWithFailure(t *testing.T) {
 
 	assert.Nil(t, errorResponse.RetryAfter)
 	assert.Equal(t, 1, requestCounter)
-	assert.Equal(t, 401, errorResponse.Response.StatusCode)
+	assert.Equal(t, http.StatusUnauthorized, errorResponse.Response.StatusCode)
 
 }
 
