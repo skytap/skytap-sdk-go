@@ -5,29 +5,10 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
-
-func createClient(t *testing.T) (*Client, *httptest.Server, *func(rw http.ResponseWriter, req *http.Request)) {
-	handler := http.NotFound
-	hs := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		handler(rw, req)
-	}))
-
-	var user = "SKYTAP_USER"
-	var token = "SKYTAP_ACCESS_TOKEN"
-
-	settings := NewDefaultSettings(WithBaseURL(hs.URL), WithCredentialsProvider(NewAPITokenCredentials(user, token)))
-
-	skytap, err := NewClient(settings)
-
-	assert.Nil(t, err)
-	assert.NotNil(t, skytap)
-	return skytap, hs, &handler
-}
 
 func TestCreateProject(t *testing.T) {
 	skytap, hs, handler := createClient(t)
