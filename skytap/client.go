@@ -22,7 +22,7 @@ const (
 	headerRequestID  = "X-Request-ID"
 	headerRetryAfter = "Retry-After"
 
-	defRetryAfter = 2
+	defRetryAfter = 10
 	defRetryCount = 6
 )
 
