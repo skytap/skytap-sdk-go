@@ -129,9 +129,6 @@ func NewClient(settings Settings) (*Client, error) {
 	client.retryAfter = defRetryAfter
 	client.retryCount = defRetryCount
 
-	client.retryAfter = defRetryAfter
-	client.retryCount = defRetryCount
-
 	return &client, nil
 }
 
