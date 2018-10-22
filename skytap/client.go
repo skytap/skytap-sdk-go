@@ -43,6 +43,7 @@ type Client struct {
 	// Services used for communicating with the API
 	Projects     ProjectsService
 	Environments EnvironmentsService
+	Templates    TemplatesService
 
 	retryAfter int
 	retryCount int
@@ -123,6 +124,7 @@ func NewClient(settings Settings) (*Client, error) {
 
 	client.Projects = &ProjectsServiceClient{&client}
 	client.Environments = &EnvironmentsServiceClient{&client}
+	client.Templates = &TemplatesServiceClient{&client}
 
 	client.retryAfter = defRetryAfter
 	client.retryCount = defRetryCount
