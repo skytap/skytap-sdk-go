@@ -390,7 +390,7 @@ func TestCreateEnvironment(t *testing.T) {
 			}
 			body, err := ioutil.ReadAll(req.Body)
 			assert.Nil(t, err)
-			assert.JSONEq(t, `{"description": "test environment"}`, string(body))
+			assert.JSONEq(t, `{"description": "test environment", "runstate":"running"}`, string(body))
 
 			io.WriteString(rw, exampleEnvironment)
 		}
