@@ -356,6 +356,7 @@ const (
 	EnvironmentRunstateStopped   EnvironmentRunstate = "stopped"
 	EnvironmentRunstateSuspended EnvironmentRunstate = "suspended"
 	EnvironmentRunstateRunning   EnvironmentRunstate = "running"
+	EnvironmentRunstateBusy      EnvironmentRunstate = "busy"
 )
 
 // VMRunstate enumerates the possible VM running states
@@ -368,6 +369,7 @@ const (
 	VMRunstateRunning   VMRunstate = "running"
 	VMRunstateReset     VMRunstate = "reset"
 	VMRunstateHalted    VMRunstate = "halted"
+	VMRunstateBusy      VMRunstate = "busy"
 )
 
 // Architecture is the system architecture
