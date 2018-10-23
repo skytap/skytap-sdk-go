@@ -59,7 +59,15 @@ const exampleEnvironment = `{
     ],
     "tag_list": "tag1,tag2",
     "alerts": [
-        "alert1"
+        {  
+         "id":"586",
+         "display_type":"informational_alert",
+         "dismissable":true,
+         "message":"IBM i Technology Preview Program nominations are now open.  For more information see <a href=\"https://help.skytap.com/Whats_New.html\">What's New</a>.",
+         "display_on_general":true,
+         "display_on_login":false,
+         "display_on_smartclient":false
+      }
     ],
     "published_service_count": 0,
     "public_ip_count": 0,
