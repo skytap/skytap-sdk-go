@@ -404,6 +404,7 @@ type CreateEnvironmentRequest struct {
 // UpdateEnvironmentRequest describes the update the environment data
 type UpdateEnvironmentRequest struct {
 	Name            *string              `json:"name,omitempty"`
+	ProjectID       *int                 `json:"project_id,omitempty"`
 	Description     *string              `json:"description,omitempty"`
 	Owner           *string              `json:"owner,omitempty"`
 	OutboundTraffic *bool                `json:"outbound_traffic,omitempty"`
@@ -471,6 +472,7 @@ func (s *EnvironmentsServiceClient) Create(ctx context.Context, request *CreateE
 
 	updateOpts := &UpdateEnvironmentRequest{
 		Name:            request.Name,
+		ProjectID:       request.ProjectID,
 		Description:     request.Description,
 		Owner:           request.Owner,
 		OutboundTraffic: request.OutboundTraffic,
