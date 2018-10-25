@@ -13,28 +13,30 @@ import (
 )
 
 const exampleNetworkRequest = `{"name": 
-"test network",
-"network_type": "automatic", 
-"subnet": "10.0.2.0/24", 
-"domain": "sampledomain.com", 
-"gateway": "10.0.2.254", 
-"tunnelable": true}`
+    "test network",
+    "network_type": "automatic", 
+    "subnet": "10.0.2.0/24", 
+    "domain": "sampledomain.com", 
+    "gateway": "10.0.2.254", 
+    "tunnelable": true
+}`
 
 const exampleNetworkResponse = `{"id": "%d",
-			"url": "https://cloud.skytap.com/v2/configurations/%d/networks/%d",
-			"name": "test network",
-			"network_type": "automatic",
-			"subnet": "10.0.2.0/24",
-			"subnet_addr": "10.0.2.0",
-			"subnet_size": 24,
-			"gateway": "10.0.2.254",
-			"primary_nameserver": null,
-			"secondary_nameserver": null,
-			"region": "US-West",
-			"domain": "sampledomain.com",
-			"vpn_attachments": [],
-			"tunnelable": true,
-			"tunnels": []}`
+    "url": "https://cloud.skytap.com/v2/configurations/%d/networks/%d",
+	"name": "test network",
+	"network_type": "automatic",
+	"subnet": "10.0.2.0/24",
+	"subnet_addr": "10.0.2.0",
+	"subnet_size": 24,
+	"gateway": "10.0.2.254",
+	"primary_nameserver": null,
+	"secondary_nameserver": null,
+	"region": "US-West",
+	"domain": "sampledomain.com",
+	"vpn_attachments": [],
+	"tunnelable": true,
+	"tunnels": []
+}`
 
 func TestCreateNetwork(t *testing.T) {
 	exampleNetwork := fmt.Sprintf(exampleNetworkResponse, 456, 123, 456)
@@ -43,15 +45,13 @@ func TestCreateNetwork(t *testing.T) {
 	defer hs.Close()
 
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
-		if req.URL.Path != "/v2/configurations/123/networks" {
-			t.Error("Bad path", req.URL.Path)
-		}
-		if req.Method != "POST" {
-			t.Error("Bad method")
-		}
+		assert.Equal(t, "/v2/configurations/123/networks", req.URL.Path, "Bad path")
+		assert.Equal(t, "POST", req.Method, "Bad method")
+
 		body, err := ioutil.ReadAll(req.Body)
-		assert.Nil(t, err)
-		assert.JSONEq(t, exampleNetworkRequest, string(body))
+		assert.Nil(t, err, "Bad request body")
+		assert.JSONEq(t, exampleNetworkRequest, string(body), "Bad request body")
+
 		io.WriteString(rw, exampleNetwork)
 	}
 	opts := &CreateNetworkRequest{
@@ -63,14 +63,11 @@ func TestCreateNetwork(t *testing.T) {
 	}
 
 	network, err := skytap.Networks.Create(context.Background(), "123", opts)
-
-	assert.Nil(t, err)
+	assert.Nil(t, err, "Bad API method")
 
 	var networkExpected Network
-
 	err = json.Unmarshal([]byte(exampleNetwork), &networkExpected)
-
-	assert.Equal(t, networkExpected, *network)
+	assert.Equal(t, networkExpected, *network, "Bad network")
 }
 
 func TestReadNetwork(t *testing.T) {
@@ -80,24 +77,18 @@ func TestReadNetwork(t *testing.T) {
 	defer hs.Close()
 
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
-		if req.URL.Path != "/v2/configurations/123/networks/456" {
-			t.Error("Bad path")
-		}
-		if req.Method != "GET" {
-			t.Error("Bad method")
-		}
+		assert.Equal(t, "/v2/configurations/123/networks/456", req.URL.Path, "Bad path")
+		assert.Equal(t, "GET", req.Method, "Bad method")
+
 		io.WriteString(rw, exampleNetwork)
 	}
 
 	network, err := skytap.Networks.Get(context.Background(), "123", "456")
-
-	assert.Nil(t, err)
+	assert.Nil(t, err, "Bad API method")
 
 	var networkExpected Network
-
 	err = json.Unmarshal([]byte(exampleNetwork), &networkExpected)
-
-	assert.Equal(t, networkExpected, *network)
+	assert.Equal(t, networkExpected, *network, "Bad Network")
 }
 
 func TestUpdateNetwork(t *testing.T) {
@@ -111,18 +102,15 @@ func TestUpdateNetwork(t *testing.T) {
 	*network.Name = "updated network"
 
 	bytes, err := json.Marshal(&network)
-	assert.Nil(t, err)
+	assert.Nil(t, err, "Bad network")
 
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
-		if req.URL.Path != "/v2/configurations/123/networks/456" {
-			t.Error("Bad path")
-		}
-		if req.Method != "PUT" {
-			t.Error("Bad method")
-		}
+		assert.Equal(t, "/v2/configurations/123/networks/456", req.URL.Path, "Bad path")
+		assert.Equal(t, "PUT", req.Method, "Bad method")
+
 		body, err := ioutil.ReadAll(req.Body)
-		assert.Nil(t, err)
-		assert.JSONEq(t, `{"name": "updated network"}`, string(body))
+		assert.Nil(t, err, "Bad request body")
+		assert.JSONEq(t, `{"name": "updated network"}`, string(body), "Bad request body")
 
 		io.WriteString(rw, string(bytes))
 	}
@@ -130,11 +118,10 @@ func TestUpdateNetwork(t *testing.T) {
 	opts := &UpdateNetworkRequest{
 		Name: strToPtr(*network.Name),
 	}
-
 	networkUpdate, err := skytap.Networks.Update(context.Background(), "123", "456", opts)
+	assert.Nil(t, err, "Bad API method")
 
-	assert.Nil(t, err)
-	assert.Equal(t, network, *networkUpdate)
+	assert.Equal(t, network, *networkUpdate, "Bad network")
 }
 
 func TestDeleteNetwork(t *testing.T) {
@@ -142,16 +129,12 @@ func TestDeleteNetwork(t *testing.T) {
 	defer hs.Close()
 
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
-		if req.URL.Path != "/v2/configurations/123/networks/456" {
-			t.Error("Bad path")
-		}
-		if req.Method != "DELETE" {
-			t.Error("Bad method")
-		}
+		assert.Equal(t, "/v2/configurations/123/networks/456", req.URL.Path, "Bad path")
+		assert.Equal(t, "DELETE", req.Method, "Bad method")
 	}
 
 	err := skytap.Networks.Delete(context.Background(), "123", "456")
-	assert.Nil(t, err)
+	assert.Nil(t, err, "Bad API method")
 }
 
 func TestListNetworks(t *testing.T) {
@@ -161,18 +144,14 @@ func TestListNetworks(t *testing.T) {
 	defer hs.Close()
 
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
-		if req.URL.Path != "/v2/configurations/123/networks" {
-			t.Error("Bad path")
-		}
-		if req.Method != "GET" {
-			t.Error("Bad method")
-		}
+		assert.Equal(t, "/v2/configurations/123/networks", req.URL.Path, "Bad path")
+		assert.Equal(t, "GET", req.Method, "Bad method")
+
 		io.WriteString(rw, fmt.Sprintf(`[%+v]`, exampleNetwork))
 	}
 
 	result, err := skytap.Networks.List(context.Background(), "123")
-
-	assert.Nil(t, err)
+	assert.Nil(t, err, "Bad API method")
 
 	var found = false
 	for _, network := range result.Value {
@@ -181,6 +160,5 @@ func TestListNetworks(t *testing.T) {
 			break
 		}
 	}
-
-	assert.True(t, found)
+	assert.True(t, found, "Network not found")
 }

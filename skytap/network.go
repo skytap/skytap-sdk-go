@@ -2,12 +2,12 @@ package skytap
 
 import (
 	"context"
-	"fmt"
 )
 
 // Default URL paths
 const (
-	networksBasePath = "/v2/configurations/%s/networks"
+	networksBasePath = "/v2/configurations/"
+	networksPath     = "/networks"
 )
 
 // NetworksService is the contract for the services provided on the Skytap Network resource
@@ -117,7 +117,7 @@ type NetworkListResult struct {
 
 // List the networks
 func (s *NetworksServiceClient) List(ctx context.Context, environmentID string) (*NetworkListResult, error) {
-	path := fmt.Sprintf(networksBasePath, environmentID)
+	path := s.buildPath(environmentID, "")
 
 	req, err := s.client.newRequest(ctx, "GET", path, nil)
 	if err != nil {
@@ -140,7 +140,7 @@ func (s *NetworksServiceClient) List(ctx context.Context, environmentID string) 
 
 // Get a network
 func (s *NetworksServiceClient) Get(ctx context.Context, environmentID string, id string) (*Network, error) {
-	path := fmt.Sprintf(networksBasePath+"/%s", environmentID, id)
+	path := s.buildPath(environmentID, id)
 
 	req, err := s.client.newRequest(ctx, "GET", path, nil)
 	if err != nil {
@@ -158,10 +158,9 @@ func (s *NetworksServiceClient) Get(ctx context.Context, environmentID string, i
 
 // Create a network
 func (s *NetworksServiceClient) Create(ctx context.Context, environmentID string, opts *CreateNetworkRequest) (*Network, error) {
-	path := fmt.Sprintf(networksBasePath, environmentID)
+	path := s.buildPath(environmentID, "")
 
-	automatic := NetworkTypeAutomatic
-	opts.NetworkType = &automatic
+	opts.NetworkType = networkTypeToPtr(NetworkTypeAutomatic)
 
 	req, err := s.client.newRequest(ctx, "POST", path, opts)
 	if err != nil {
@@ -179,7 +178,7 @@ func (s *NetworksServiceClient) Create(ctx context.Context, environmentID string
 
 // Update a network
 func (s *NetworksServiceClient) Update(ctx context.Context, environmentID string, id string, network *UpdateNetworkRequest) (*Network, error) {
-	path := fmt.Sprintf(networksBasePath+"/%s", environmentID, id)
+	path := s.buildPath(environmentID, id)
 
 	req, err := s.client.newRequest(ctx, "PUT", path, network)
 	if err != nil {
@@ -197,7 +196,7 @@ func (s *NetworksServiceClient) Update(ctx context.Context, environmentID string
 
 // Delete a network
 func (s *NetworksServiceClient) Delete(ctx context.Context, environmentID string, id string) error {
-	path := fmt.Sprintf(networksBasePath+"/%s", environmentID, id)
+	path := s.buildPath(environmentID, id)
 
 	req, err := s.client.newRequest(ctx, "DELETE", path, nil)
 	if err != nil {
@@ -210,4 +209,12 @@ func (s *NetworksServiceClient) Delete(ctx context.Context, environmentID string
 	}
 
 	return nil
+}
+
+func (s *NetworksServiceClient) buildPath(environmentID string, networkID string) string {
+	path := networksBasePath + environmentID + networksPath
+	if networkID != "" {
+		path += "/" + networkID
+	}
+	return path
 }
