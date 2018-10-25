@@ -62,7 +62,7 @@ type VpnAttachmentNetwork struct {
 	ConfigurationID *string `json:"configuration_id"`
 }
 
-// VPN described a virtual machine attached to a network.
+// VPN describes a virtual private network.
 type VPN struct {
 	ID            *string `json:"id"`
 	Name          *string `json:"name"`
