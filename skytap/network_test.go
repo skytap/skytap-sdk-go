@@ -55,11 +55,12 @@ func TestCreateNetwork(t *testing.T) {
 		io.WriteString(rw, exampleNetwork)
 	}
 	opts := &CreateNetworkRequest{
-		Name:       strToPtr("test network"),
-		Subnet:     strToPtr("10.0.2.0/24"),
-		Gateway:    strToPtr("10.0.2.254"),
-		Tunnelable: boolToPtr(true),
-		Domain:     strToPtr("sampledomain.com"),
+		Name:        strToPtr("test network"),
+		Subnet:      strToPtr("10.0.2.0/24"),
+		Gateway:     strToPtr("10.0.2.254"),
+		Tunnelable:  boolToPtr(true),
+		Domain:      strToPtr("sampledomain.com"),
+		NetworkType: networkTypeToPtr(NetworkTypeAutomatic),
 	}
 
 	network, err := skytap.Networks.Create(context.Background(), "123", opts)
