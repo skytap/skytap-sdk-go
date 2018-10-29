@@ -46,12 +46,12 @@ func TestCreateVM(t *testing.T) {
 		VMID:       []string{"43"},
 	}
 
-	vm, err := skytap.VMs.Create(context.Background(), "123", opts)
+	environment, err := skytap.VMs.Create(context.Background(), "123", opts)
 	assert.Nil(t, err, "Bad API method")
 
-	var vmExpected VM
-	err = json.Unmarshal([]byte(response), &vmExpected)
-	assert.Equal(t, vmExpected, *vm, "Bad vm")
+	var environmentExpected Environment
+	err = json.Unmarshal([]byte(response), &environmentExpected)
+	assert.Equal(t, environmentExpected, *environment, "Bad environment")
 }
 
 func TestReadVM(t *testing.T) {
