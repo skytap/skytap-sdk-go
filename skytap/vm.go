@@ -13,7 +13,7 @@ const (
 type VMsService interface {
 	List(ctx context.Context, environmentID string) (*VMListResult, error)
 	Get(ctx context.Context, environmentID string, id string) (*VM, error)
-	Create(ctx context.Context, environmentID string, opts *CreateVMRequest) (*VM, error)
+	Create(ctx context.Context, environmentID string, opts *CreateVMRequest) (*Environment, error)
 	Update(ctx context.Context, environmentID string, id string, vm *UpdateVMRequest) (*VM, error)
 	Delete(ctx context.Context, environmentID string, id string) error
 }
@@ -268,8 +268,8 @@ func (s *VMsServiceClient) Get(ctx context.Context, environmentID string, id str
 	return &vm, nil
 }
 
-// Create a vm
-func (s *VMsServiceClient) Create(ctx context.Context, environmentID string, opts *CreateVMRequest) (*VM, error) {
+// Create a vm - returns an Environment
+func (s *VMsServiceClient) Create(ctx context.Context, environmentID string, opts *CreateVMRequest) (*Environment, error) {
 	path := s.buildPath(true, environmentID, "")
 
 	req, err := s.client.newRequest(ctx, "PUT", path, opts)
@@ -277,13 +277,13 @@ func (s *VMsServiceClient) Create(ctx context.Context, environmentID string, opt
 		return nil, err
 	}
 
-	var createdVM VM
-	_, err = s.client.do(ctx, req, &createdVM)
+	var createdEnvironment Environment
+	_, err = s.client.do(ctx, req, &createdEnvironment)
 	if err != nil {
 		return nil, err
 	}
 
-	return &createdVM, nil
+	return &createdEnvironment, nil
 }
 
 // Update a vm
