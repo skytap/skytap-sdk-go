@@ -88,6 +88,7 @@ func TestUpdateVM(t *testing.T) {
 	var vm VM
 	json.Unmarshal([]byte(response), &vm)
 	*vm.Name = "updated vm"
+	*vm.Runstate = VMRunstateRunning
 
 	bytes, err := json.Marshal(&vm)
 	assert.Nil(t, err, "Bad vm")
@@ -98,13 +99,14 @@ func TestUpdateVM(t *testing.T) {
 
 		body, err := ioutil.ReadAll(req.Body)
 		assert.Nil(t, err, "Bad request body")
-		assert.JSONEq(t, `{"name": "updated vm"}`, string(body), "Bad request body")
+		assert.JSONEq(t, `{"name": "updated vm", "runstate":"running"}`, string(body), "Bad request body")
 
 		io.WriteString(rw, string(bytes))
 	}
 
 	opts := &UpdateVMRequest{
-		Name: strToPtr(*vm.Name),
+		Name:     strToPtr(*vm.Name),
+		Runstate: vmRunStateToPtr(*vm.Runstate),
 	}
 	vmUpdate, err := skytap.VMs.Update(context.Background(), "123", "456", opts)
 	assert.Nil(t, err, "Bad API method")

@@ -219,7 +219,7 @@ type CreateVMRequest struct {
 // UpdateVMRequest describes the update the VM data
 type UpdateVMRequest struct {
 	Name     *string     `json:"name,omitempty"`
-	Runstate *VMRunstate `json:"subnet,omitempty"`
+	Runstate *VMRunstate `json:"runstate,omitempty"`
 }
 
 // VMListResult is the listing request specific struct
