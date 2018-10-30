@@ -13,45 +13,63 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const (
-	exampleVMRequest = `{
+func TestCreateVM(t *testing.T) {
+	request := fmt.Sprintf(`{
 		"template_id": "%d",
     		"vm_ids": [
         		"%d"
-    	]
-	}`
-)
-
-func TestCreateVM(t *testing.T) {
-	exampleCreateVMResponse := string(readTestFile(t, "createVMResponse.json"))
-
-	response := fmt.Sprintf(exampleCreateVMResponse, 123, 123, 456)
-	request := fmt.Sprintf(exampleVMRequest, 42, 43)
+    	],
+		"name": "updated vm"
+	}`, 42, 43)
+	firstResponseJSON := string(readTestFile(t, "createVMResponse.json"))
+	firstResponse := fmt.Sprintf(firstResponseJSON, 123, 123, 456)
+	secondResponseJSON := string(readTestFile(t, "VMResponse.json"))
+	secondResponse := fmt.Sprintf(secondResponseJSON, 456)
 
 	skytap, hs, handler := createClient(t)
 	defer hs.Close()
 
+	var vmFromFile VM
+	json.Unmarshal([]byte(secondResponse), &vmFromFile)
+	*vmFromFile.Name = "updated vm"
+
+	bytes, err := json.Marshal(&vmFromFile)
+	assert.Nil(t, err, "Bad vm")
+
+	var createPhase = true
+
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
-		assert.Equal(t, "/configurations/123", req.URL.Path, "Bad path")
-		assert.Equal(t, "PUT", req.Method, "Bad method")
+		if createPhase {
+			assert.Equal(t, "/configurations/123", req.URL.Path, "Bad path")
+			assert.Equal(t, "PUT", req.Method, "Bad method")
 
-		body, err := ioutil.ReadAll(req.Body)
-		assert.Nil(t, err, "Bad request body")
-		assert.JSONEq(t, request, string(body), "Bad request body")
+			body, err := ioutil.ReadAll(req.Body)
+			assert.Nil(t, err, "Bad request body")
+			assert.JSONEq(t, request, string(body), "Bad request body")
 
-		io.WriteString(rw, response)
+			io.WriteString(rw, firstResponse)
+			createPhase = false
+		} else {
+			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
+			assert.Equal(t, "PUT", req.Method, "Bad method")
+
+			body, err := ioutil.ReadAll(req.Body)
+			assert.Nil(t, err, "Bad request body")
+			assert.JSONEq(t, `{"name": "updated vm"}`, string(body), "Bad request body")
+
+			io.WriteString(rw, string(bytes))
+		}
 	}
 	opts := &CreateVMRequest{
 		TemplateID: "42",
 		VMID:       []string{"43"},
+		Name:       strToPtr(*vmFromFile.Name),
 	}
 
-	environment, err := skytap.VMs.Create(context.Background(), "123", opts)
+	createdVM, err := skytap.VMs.Create(context.Background(), "123", opts)
 	assert.Nil(t, err, "Bad API method")
 
-	var environmentExpected Environment
-	err = json.Unmarshal([]byte(response), &environmentExpected)
-	assert.Equal(t, environmentExpected, *environment, "Bad environment")
+	assert.Equal(t, vmFromFile, *createdVM, "Bad VM")
 }
 
 func TestReadVM(t *testing.T) {
