@@ -49,7 +49,7 @@ func (pb *interfacePathBuilderImpl) Build() string {
 type InterfacesService interface {
 	List(ctx context.Context, environmentID string, vmID string) (*InterfaceListResult, error)
 	Get(ctx context.Context, environmentID string, vmID string, id string) (*Interface, error)
-	Create(ctx context.Context, environmentID string, vmID string, opts *CreateInterfaceRequest) (*Interface, error)
+	Create(ctx context.Context, environmentID string, vmID string, nicType *CreateInterfaceRequest) (*Interface, error)
 	Attach(ctx context.Context, environmentID string, vmID string, id string, networkID *AttachInterfaceRequest) (*Interface, error)
 	Update(ctx context.Context, environmentID string, vmID string, id string, opt *UpdateInterfaceRequest) (*Interface, error)
 	Delete(ctx context.Context, environmentID string, vmID string, id string) error
@@ -186,11 +186,11 @@ func (s *InterfacesServiceClient) Get(ctx context.Context, environmentID string,
 }
 
 // Create an interface
-func (s *InterfacesServiceClient) Create(ctx context.Context, environmentID string, vmID string, opts *CreateInterfaceRequest) (*Interface, error) {
+func (s *InterfacesServiceClient) Create(ctx context.Context, environmentID string, vmID string, nicType *CreateInterfaceRequest) (*Interface, error) {
 	var builder interfacePathBuilderImpl
 	path := builder.Environment(environmentID).VM(vmID).Build()
 
-	req, err := s.client.newRequest(ctx, "POST", path, opts)
+	req, err := s.client.newRequest(ctx, "POST", path, nicType)
 	if err != nil {
 		return nil, err
 	}

@@ -120,11 +120,11 @@ func TestCreateInterface(t *testing.T) {
 
 		io.WriteString(rw, exampleInterface)
 	}
-	opts := &CreateInterfaceRequest{
+	nicType := &CreateInterfaceRequest{
 		NICType: nicTypeToPtr(NICTypeE1000),
 	}
 
-	networkInterface, err := skytap.Interfaces.Create(context.Background(), "123", "456", opts)
+	networkInterface, err := skytap.Interfaces.Create(context.Background(), "123", "456", nicType)
 	assert.Nil(t, err, "Bad API method")
 
 	var interfaceExpected Interface
@@ -159,38 +159,6 @@ func TestAttachInterface(t *testing.T) {
 	err = json.Unmarshal([]byte(exampleInterface), &interfaceExpected)
 	assert.Equal(t, interfaceExpected, *networkInterface, "Bad interface")
 }
-
-//func TestCreateInterface2(t *testing.T) {
-//	exampleInterface := fmt.Sprintf(exampleAttachInterfaceResponse, 456, 123)
-//
-//
-//	skytap, hs, handler := createClient(t)
-//	defer hs.Close()
-//
-//	*handler = func(rw http.ResponseWriter, req *http.Request) {
-//		assert.Equal(t, "/v2/configurations/123/vms/456/interfaces", req.URL.Path, "Bad path")
-//		assert.Equal(t, "POST", req.Method, "Bad method")
-//
-//		body, err := ioutil.ReadAll(req.Body)
-//		assert.Nil(t, err, "Bad request body")
-//		assert.JSONEq(t, exampleInterfaceRequest2, string(body), "Bad request body")
-//
-//		io.WriteString(rw, exampleInterface)
-//	}
-//	opts := &CreateInterfaceRequest{
-//		NICType:   nicTypeToPtr(NICTypeE1000),
-//		NetworkID: strToPtr("23917287"),
-//		IP:        strToPtr("10.0.0.1"),
-//		Hostname:  strToPtr("name.com"),
-//	}
-//
-//	networkInterface, err := skytap.Interfaces.Create(context.Background(), "123", "456", opts)
-//	assert.Nil(t, err, "Bad API method")
-//
-//	var interfaceExpected Interface
-//	err = json.Unmarshal([]byte(exampleInterface), &interfaceExpected)
-//	assert.Equal(t, interfaceExpected, *networkInterface, "Bad interface")
-//}
 
 func TestReadInterface(t *testing.T) {
 	exampleInterface := fmt.Sprintf(exampleCreateInterfaceResponse, 456, 123)
