@@ -273,6 +273,7 @@ func (c *Client) checkResponse(r *http.Response) error {
 
 	if code := r.StatusCode; code == http.StatusLocked ||
 		code == http.StatusTooManyRequests ||
+		code == http.StatusConflict ||
 		code >= http.StatusInternalServerError && code <= 599 {
 		if retryAfter := r.Header.Get(headerRetryAfter); retryAfter != "" {
 			val, err := strconv.Atoi(retryAfter)
