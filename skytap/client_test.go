@@ -52,7 +52,6 @@ func TestRetryWithFailure(t *testing.T) {
 	assert.Nil(t, errorResponse.RetryAfter)
 	assert.Equal(t, 1, requestCounter)
 	assert.Equal(t, http.StatusUnauthorized, errorResponse.Response.StatusCode)
-
 }
 
 func TestRetryWithBusy423(t *testing.T) {
