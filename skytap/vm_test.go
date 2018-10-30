@@ -37,7 +37,7 @@ func TestCreateVM(t *testing.T) {
 	}
 	opts := &CreateVMRequest{
 		TemplateID: "42",
-		VMID:       []string{"43"},
+		VMID:       "43",
 	}
 
 	createdVM, err := skytap.VMs.Create(context.Background(), "123", opts)
