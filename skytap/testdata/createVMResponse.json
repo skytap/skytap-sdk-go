@@ -11,7 +11,7 @@
   "routable": false,
   "vms": [{
     "id": "older",
-    "name": "Red Hat Enterprise Linux 7 Server (with GUI) x64",
+    "name": "Red Hat Enterprise Linux 7 Server (with GUI) x64 1",
     "runstate": "busy",
     "rate_limited": false,
     "hardware": {
@@ -86,7 +86,7 @@
     "configuration_url": "https://cloud.skytap.com/configurations/39855984"
   }, {
     "id": "%d",
-    "name": "Red Hat Enterprise Linux 7 Server (with GUI) x64",
+    "name": "Red Hat Enterprise Linux 7 Server (with GUI) x64 2",
     "runstate": "busy",
     "rate_limited": false,
     "hardware": {
@@ -161,7 +161,7 @@
     "configuration_url": "https://cloud.skytap.com/configurations/39855984"
   }, {
     "id": "oldest",
-    "name": "Red Hat Enterprise Linux 7 Server (with GUI) x64",
+    "name": "Red Hat Enterprise Linux 7 Server (with GUI) x64 3",
     "runstate": "busy",
     "rate_limited": false,
     "hardware": {

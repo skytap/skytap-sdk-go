@@ -220,7 +220,6 @@ const (
 type CreateVMRequest struct {
 	TemplateID string   `json:"template_id"`
 	VMID       []string `json:"vm_ids"`
-	Name       *string  `json:"name,omitempty"`
 }
 
 // UpdateVMRequest describes the update the VM data
@@ -294,26 +293,17 @@ func (s *VMsServiceClient) Create(ctx context.Context, environmentID string, opt
 	// It is necessary to retrieve the most recently created vm.
 	createdVM := mostRecentVM(createdEnvironment.VMs)
 
-	// update VM after creation to establish the resource information.
-	updateOpts := &UpdateVMRequest{
-		Name: opts.Name,
-	}
-	updatedVM, err := s.Update(ctx, *createdEnvironment.ID, *createdVM.ID, updateOpts)
-	if err != nil {
-		return nil, err
-	}
-
-	return updatedVM, nil
+	return createdVM, nil
 }
 
 // mostRecentVM returns the mose recent VM given a list of VMs
-func mostRecentVM(vms []VM) VM {
+func mostRecentVM(vms []VM) *VM {
 	sort.Slice(vms, func(i, j int) bool {
 		time1, _ := time.Parse(timestampFormat, *vms[i].CreatedAt)
 		time2, _ := time.Parse(timestampFormat, *vms[j].CreatedAt)
 		return time1.After(time2)
 	})
-	return vms[0]
+	return &vms[0]
 }
 
 // Update a vm

@@ -18,64 +18,38 @@ func TestCreateVM(t *testing.T) {
 		"template_id": "%d",
     		"vm_ids": [
         		"%d"
-    	],
-		"name": "updated vm"
+    	]
 	}`, 42, 43)
-	firstResponseJSON := string(readTestFile(t, "createVMResponse.json"))
-	firstResponse := fmt.Sprintf(firstResponseJSON, 123, 123, 456)
-	secondResponseJSON := string(readTestFile(t, "VMResponse.json"))
-	secondResponse := fmt.Sprintf(secondResponseJSON, 456)
+	response := fmt.Sprintf(string(readTestFile(t, "createVMResponse.json")), 123, 123, 456)
 
 	skytap, hs, handler := createClient(t)
 	defer hs.Close()
 
-	var vmFromFile VM
-	json.Unmarshal([]byte(secondResponse), &vmFromFile)
-	*vmFromFile.Name = "updated vm"
-
-	bytes, err := json.Marshal(&vmFromFile)
-	assert.Nil(t, err, "Bad vm")
-
-	var createPhase = true
-
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
-		if createPhase {
-			assert.Equal(t, "/configurations/123", req.URL.Path, "Bad path")
-			assert.Equal(t, "PUT", req.Method, "Bad method")
+		assert.Equal(t, "/configurations/123", req.URL.Path, "Bad path")
+		assert.Equal(t, "PUT", req.Method, "Bad method")
 
-			body, err := ioutil.ReadAll(req.Body)
-			assert.Nil(t, err, "Bad request body")
-			assert.JSONEq(t, request, string(body), "Bad request body")
+		body, err := ioutil.ReadAll(req.Body)
+		assert.Nil(t, err, "Bad request body")
+		assert.JSONEq(t, request, string(body), "Bad request body")
 
-			io.WriteString(rw, firstResponse)
-			createPhase = false
-		} else {
-			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
-			assert.Equal(t, "PUT", req.Method, "Bad method")
-
-			body, err := ioutil.ReadAll(req.Body)
-			assert.Nil(t, err, "Bad request body")
-			assert.JSONEq(t, `{"name": "updated vm"}`, string(body), "Bad request body")
-
-			io.WriteString(rw, string(bytes))
-		}
+		io.WriteString(rw, response)
 	}
 	opts := &CreateVMRequest{
 		TemplateID: "42",
 		VMID:       []string{"43"},
-		Name:       strToPtr(*vmFromFile.Name),
 	}
 
 	createdVM, err := skytap.VMs.Create(context.Background(), "123", opts)
 	assert.Nil(t, err, "Bad API method")
 
-	assert.Equal(t, vmFromFile, *createdVM, "Bad VM")
+	var environment Environment
+	json.Unmarshal([]byte(response), &environment)
+	assert.Equal(t, environment.VMs[1], *createdVM, "Bad VM")
 }
 
 func TestReadVM(t *testing.T) {
-	exampleVMResponse := string(readTestFile(t, "VMResponse.json"))
-
-	response := fmt.Sprintf(exampleVMResponse, 456)
+	response := fmt.Sprintf(string(readTestFile(t, "VMResponse.json")), 456)
 
 	skytap, hs, handler := createClient(t)
 	defer hs.Close()
@@ -96,9 +70,7 @@ func TestReadVM(t *testing.T) {
 }
 
 func TestUpdateVM(t *testing.T) {
-	exampleVMResponse := string(readTestFile(t, "VMResponse.json"))
-
-	response := fmt.Sprintf(exampleVMResponse, 456)
+	response := fmt.Sprintf(string(readTestFile(t, "VMResponse.json")), 456)
 
 	skytap, hs, handler := createClient(t)
 	defer hs.Close()
@@ -146,9 +118,7 @@ func TestDeleteVM(t *testing.T) {
 }
 
 func TestListVMs(t *testing.T) {
-	exampleVMResponse := string(readTestFile(t, "VMResponse.json"))
-
-	response := fmt.Sprintf(exampleVMResponse, 456)
+	response := fmt.Sprintf(string(readTestFile(t, "VMResponse.json")), 456)
 
 	skytap, hs, handler := createClient(t)
 	defer hs.Close()
