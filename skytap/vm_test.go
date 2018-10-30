@@ -20,8 +20,7 @@ func TestCreateVM(t *testing.T) {
         		"%d"
     	]
 	}`, 42, 43)
-	firstResponseJSON := string(readTestFile(t, "createVMResponse.json"))
-	firstResponse := fmt.Sprintf(firstResponseJSON, 123, 123, 456)
+	response := fmt.Sprintf(string(readTestFile(t, "createVMResponse.json")), 123, 123, 456)
 
 	skytap, hs, handler := createClient(t)
 	defer hs.Close()
@@ -34,7 +33,7 @@ func TestCreateVM(t *testing.T) {
 		assert.Nil(t, err, "Bad request body")
 		assert.JSONEq(t, request, string(body), "Bad request body")
 
-		io.WriteString(rw, firstResponse)
+		io.WriteString(rw, response)
 	}
 	opts := &CreateVMRequest{
 		TemplateID: "42",
@@ -45,14 +44,12 @@ func TestCreateVM(t *testing.T) {
 	assert.Nil(t, err, "Bad API method")
 
 	var environment Environment
-	json.Unmarshal([]byte(firstResponse), &environment)
+	json.Unmarshal([]byte(response), &environment)
 	assert.Equal(t, environment.VMs[1], *createdVM, "Bad VM")
 }
 
 func TestReadVM(t *testing.T) {
-	exampleVMResponse := string(readTestFile(t, "VMResponse.json"))
-
-	response := fmt.Sprintf(exampleVMResponse, 456)
+	response := fmt.Sprintf(string(readTestFile(t, "VMResponse.json")), 456)
 
 	skytap, hs, handler := createClient(t)
 	defer hs.Close()
@@ -73,9 +70,7 @@ func TestReadVM(t *testing.T) {
 }
 
 func TestUpdateVM(t *testing.T) {
-	exampleVMResponse := string(readTestFile(t, "VMResponse.json"))
-
-	response := fmt.Sprintf(exampleVMResponse, 456)
+	response := fmt.Sprintf(string(readTestFile(t, "VMResponse.json")), 456)
 
 	skytap, hs, handler := createClient(t)
 	defer hs.Close()
@@ -123,9 +118,7 @@ func TestDeleteVM(t *testing.T) {
 }
 
 func TestListVMs(t *testing.T) {
-	exampleVMResponse := string(readTestFile(t, "VMResponse.json"))
-
-	response := fmt.Sprintf(exampleVMResponse, 456)
+	response := fmt.Sprintf(string(readTestFile(t, "VMResponse.json")), 456)
 
 	skytap, hs, handler := createClient(t)
 	defer hs.Close()
