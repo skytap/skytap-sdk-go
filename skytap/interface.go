@@ -50,6 +50,7 @@ type InterfacesService interface {
 	List(ctx context.Context, environmentID string, vmID string) (*InterfaceListResult, error)
 	Get(ctx context.Context, environmentID string, vmID string, id string) (*Interface, error)
 	Create(ctx context.Context, environmentID string, vmID string, opts *CreateInterfaceRequest) (*Interface, error)
+	Attach(ctx context.Context, environmentID string, vmID string, id string, networkID *AttachInterfaceRequest) (*Interface, error)
 	Update(ctx context.Context, environmentID string, vmID string, id string, opt *UpdateInterfaceRequest) (*Interface, error)
 	Delete(ctx context.Context, environmentID string, vmID string, id string) error
 }
@@ -122,10 +123,12 @@ const (
 
 // CreateInterfaceRequest describes the create the interface data
 type CreateInterfaceRequest struct {
-	NICType   *NICType `json:"nic_type"`
-	NetworkID *string  `json:"network_id"`
-	IP        *string  `json:"ip,omitempty"`
-	Hostname  *string  `json:"hostname,omitempty"`
+	NICType *NICType `json:"nic_type"`
+}
+
+// AttachInterfaceRequest configures the network id in order that the interface can be attached to a network
+type AttachInterfaceRequest struct {
+	NetworkID *string `json:"network_id"`
 }
 
 // UpdateInterfaceRequest describes the update the interface data
@@ -199,6 +202,25 @@ func (s *InterfacesServiceClient) Create(ctx context.Context, environmentID stri
 	}
 
 	return &createdInterface, nil
+}
+
+// Attach an interface
+func (s *InterfacesServiceClient) Attach(ctx context.Context, environmentID string, vmID string, id string, networkID *AttachInterfaceRequest) (*Interface, error) {
+	var builder interfacePathBuilderImpl
+	path := builder.Environment(environmentID).VM(vmID).Interface(id).Build()
+
+	req, err := s.client.newRequest(ctx, "PUT", path, networkID)
+	if err != nil {
+		return nil, err
+	}
+
+	var updatedInterface Interface
+	_, err = s.client.do(ctx, req, &updatedInterface)
+	if err != nil {
+		return nil, err
+	}
+
+	return &updatedInterface, nil
 }
 
 // Update an interface
