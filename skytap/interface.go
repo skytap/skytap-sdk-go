@@ -12,14 +12,14 @@ const (
 type interfacePathBuilder interface {
 	Environment(string) interfacePathBuilder
 	VM(string) interfacePathBuilder
-	Adapter(string) interfacePathBuilder
+	Interface(string) interfacePathBuilder
 	Build() string
 }
 
 type interfacePathBuilderImpl struct {
-	environment string
-	vm          string
-	adapter     string
+	environment      string
+	vm               string
+	networkInterface string
 }
 
 func (pb *interfacePathBuilderImpl) Environment(environment string) interfacePathBuilder {
@@ -32,30 +32,30 @@ func (pb *interfacePathBuilderImpl) VM(vm string) interfacePathBuilder {
 	return pb
 }
 
-func (pb *interfacePathBuilderImpl) Adapter(adapter string) interfacePathBuilder {
-	pb.adapter = adapter
+func (pb *interfacePathBuilderImpl) Interface(networkInterface string) interfacePathBuilder {
+	pb.networkInterface = networkInterface
 	return pb
 }
 
 func (pb *interfacePathBuilderImpl) Build() string {
 	path := interfacesBasePath + pb.environment + interfacesVMPath + pb.vm + interfacesPath
-	if pb.adapter != "" {
-		return path + "/" + pb.adapter
+	if pb.networkInterface != "" {
+		return path + "/" + pb.networkInterface
 	}
 	return path
 }
 
-// AdaptersService is the contract for the services provided on the Skytap Interface resource
-type AdaptersService interface {
-	List(ctx context.Context, environmentID string, vmID string) (*AdapterListResult, error)
+// InterfacesService is the contract for the services provided on the Skytap Interface resource
+type InterfacesService interface {
+	List(ctx context.Context, environmentID string, vmID string) (*InterfaceListResult, error)
 	Get(ctx context.Context, environmentID string, vmID string, id string) (*Interface, error)
-	Create(ctx context.Context, environmentID string, vmID string, opts *CreateAdapterRequest) (*Interface, error)
-	Update(ctx context.Context, environmentID string, vmID string, id string, adapter *UpdateAdapterRequest) (*Interface, error)
+	Create(ctx context.Context, environmentID string, vmID string, opts *CreateInterfaceRequest) (*Interface, error)
+	Update(ctx context.Context, environmentID string, vmID string, id string, opt *UpdateInterfaceRequest) (*Interface, error)
 	Delete(ctx context.Context, environmentID string, vmID string, id string) error
 }
 
-// AdaptersServiceClient is the AdaptersService implementation
-type AdaptersServiceClient struct {
+// InterfacesServiceClient is the InterfacesService implementation
+type InterfacesServiceClient struct {
 	client *Client
 }
 
@@ -120,27 +120,27 @@ const (
 	NICTypeVMXNet3 NICType = "vmxnet3"
 )
 
-// CreateAdapterRequest describes the create the adapter data
-type CreateAdapterRequest struct {
+// CreateInterfaceRequest describes the create the interface data
+type CreateInterfaceRequest struct {
 	NICType   *NICType `json:"nic_type"`
 	NetworkID *string  `json:"network_id"`
 	IP        *string  `json:"ip,omitempty"`
 	Hostname  *string  `json:"hostname,omitempty"`
 }
 
-// UpdateAdapterRequest describes the update the adapter data
-type UpdateAdapterRequest struct {
+// UpdateInterfaceRequest describes the update the interface data
+type UpdateInterfaceRequest struct {
 	IP       *string `json:"ip,omitempty"`
 	Hostname *string `json:"hostname,omitempty"`
 }
 
-// AdapterListResult is the listing request specific struct
-type AdapterListResult struct {
+// InterfaceListResult is the listing request specific struct
+type InterfaceListResult struct {
 	Value []Interface
 }
 
-// List the adapters
-func (s *AdaptersServiceClient) List(ctx context.Context, environmentID string, vmID string) (*AdapterListResult, error) {
+// List the interfaces
+func (s *InterfacesServiceClient) List(ctx context.Context, environmentID string, vmID string) (*InterfaceListResult, error) {
 	var builder interfacePathBuilderImpl
 	path := builder.Environment(environmentID).VM(vmID).Build()
 
@@ -154,36 +154,36 @@ func (s *AdaptersServiceClient) List(ctx context.Context, environmentID string, 
 		return nil, err
 	}
 
-	var adapterListResponse AdapterListResult
-	_, err = s.client.do(ctx, req, &adapterListResponse.Value)
+	var interfaceListResponse InterfaceListResult
+	_, err = s.client.do(ctx, req, &interfaceListResponse.Value)
 	if err != nil {
 		return nil, err
 	}
 
-	return &adapterListResponse, nil
+	return &interfaceListResponse, nil
 }
 
-// Get a adapter
-func (s *AdaptersServiceClient) Get(ctx context.Context, environmentID string, vmID string, id string) (*Interface, error) {
+// Get an interface
+func (s *InterfacesServiceClient) Get(ctx context.Context, environmentID string, vmID string, id string) (*Interface, error) {
 	var builder interfacePathBuilderImpl
-	path := builder.Environment(environmentID).VM(vmID).Adapter(id).Build()
+	path := builder.Environment(environmentID).VM(vmID).Interface(id).Build()
 
 	req, err := s.client.newRequest(ctx, "GET", path, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	var adapter Interface
-	_, err = s.client.do(ctx, req, &adapter)
+	var networkInterface Interface
+	_, err = s.client.do(ctx, req, &networkInterface)
 	if err != nil {
 		return nil, err
 	}
 
-	return &adapter, nil
+	return &networkInterface, nil
 }
 
-// Create a adapter
-func (s *AdaptersServiceClient) Create(ctx context.Context, environmentID string, vmID string, opts *CreateAdapterRequest) (*Interface, error) {
+// Create an interface
+func (s *InterfacesServiceClient) Create(ctx context.Context, environmentID string, vmID string, opts *CreateInterfaceRequest) (*Interface, error) {
 	var builder interfacePathBuilderImpl
 	path := builder.Environment(environmentID).VM(vmID).Build()
 
@@ -192,38 +192,38 @@ func (s *AdaptersServiceClient) Create(ctx context.Context, environmentID string
 		return nil, err
 	}
 
-	var createdAdapter Interface
-	_, err = s.client.do(ctx, req, &createdAdapter)
+	var createdInterface Interface
+	_, err = s.client.do(ctx, req, &createdInterface)
 	if err != nil {
 		return nil, err
 	}
 
-	return &createdAdapter, nil
+	return &createdInterface, nil
 }
 
-// Update a adapter
-func (s *AdaptersServiceClient) Update(ctx context.Context, environmentID string, vmID string, id string, adapter *UpdateAdapterRequest) (*Interface, error) {
+// Update an interface
+func (s *InterfacesServiceClient) Update(ctx context.Context, environmentID string, vmID string, id string, opts *UpdateInterfaceRequest) (*Interface, error) {
 	var builder interfacePathBuilderImpl
-	path := builder.Environment(environmentID).VM(vmID).Adapter(id).Build()
+	path := builder.Environment(environmentID).VM(vmID).Interface(id).Build()
 
-	req, err := s.client.newRequest(ctx, "PUT", path, adapter)
+	req, err := s.client.newRequest(ctx, "PUT", path, opts)
 	if err != nil {
 		return nil, err
 	}
 
-	var updatedAdapter Interface
-	_, err = s.client.do(ctx, req, &updatedAdapter)
+	var updatedInterface Interface
+	_, err = s.client.do(ctx, req, &updatedInterface)
 	if err != nil {
 		return nil, err
 	}
 
-	return &updatedAdapter, nil
+	return &updatedInterface, nil
 }
 
-// Delete a adapter
-func (s *AdaptersServiceClient) Delete(ctx context.Context, environmentID string, vmID string, id string) error {
+// Delete an interface
+func (s *InterfacesServiceClient) Delete(ctx context.Context, environmentID string, vmID string, id string) error {
 	var builder interfacePathBuilderImpl
-	path := builder.Environment(environmentID).VM(vmID).Adapter(id).Build()
+	path := builder.Environment(environmentID).VM(vmID).Interface(id).Build()
 
 	req, err := s.client.newRequest(ctx, "DELETE", path, nil)
 	if err != nil {
