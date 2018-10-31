@@ -47,6 +47,7 @@ type Client struct {
 	Networks     NetworksService
 	VMs          VMsService
 	Interfaces   InterfacesService
+	Services     ServicesService
 
 	retryAfter int
 	retryCount int
@@ -131,6 +132,7 @@ func NewClient(settings Settings) (*Client, error) {
 	client.Networks = &NetworksServiceClient{&client}
 	client.VMs = &VMsServiceClient{&client}
 	client.Interfaces = &InterfacesServiceClient{&client}
+	client.Services = &ServicesServiceClient{&client}
 
 	client.retryAfter = defRetryAfter
 	client.retryCount = defRetryCount
@@ -274,7 +276,7 @@ func (c *Client) checkResponse(r *http.Response) error {
 	if code := r.StatusCode; code == http.StatusLocked ||
 		code == http.StatusTooManyRequests ||
 		code == http.StatusConflict ||
-		code >= http.StatusInternalServerError && code <= 599 {
+		(code >= http.StatusInternalServerError && code <= 599) {
 		if retryAfter := r.Header.Get(headerRetryAfter); retryAfter != "" {
 			val, err := strconv.Atoi(retryAfter)
 			if err == nil {

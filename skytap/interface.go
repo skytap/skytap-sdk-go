@@ -83,14 +83,6 @@ type Interface struct {
 	PublicIPAttachments []PublicIPAttachment `json:"public_ip_attachments"`
 }
 
-// Service describes a service provided on the connected network
-type Service struct {
-	ID           *string `json:"id"`
-	InternalPort *int    `json:"internal_port"`
-	ExternalIP   *string `json:"external_ip"`
-	ExternalPort *int    `json:"external_port"`
-}
-
 // SecondaryIP holds secondary IP address data
 type SecondaryIP struct {
 	ID      *string `json:"id"`
