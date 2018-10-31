@@ -11,18 +11,18 @@ import (
 	"testing"
 )
 
-const exampleCreateServiceRequest = `{
+const examplePublishedServiceRequest = `{
     "internal_port": %d
 }`
 
-const exampleCreateServiceResponse = `{
+const examplePublishedServiceResponse = `{
     "id": %d,
     "internal_port": %d,
     "external_ip": "services-uswest.skytap.com",
     "external_port": 26160
 }`
 
-const exampleServiceListResponse = `[
+const examplePublishedServiceListResponse = `[
     {
         "id": "8080",
         "internal_port": 8080,
@@ -39,7 +39,7 @@ const exampleServiceListResponse = `[
 
 func TestCreateService(t *testing.T) {
 	port := 8080
-	exampleService := fmt.Sprintf(exampleCreateServiceResponse, port, port)
+	exampleService := fmt.Sprintf(examplePublishedServiceResponse, port, port)
 
 	skytap, hs, handler := createClient(t)
 	defer hs.Close()
@@ -50,24 +50,24 @@ func TestCreateService(t *testing.T) {
 
 		body, err := ioutil.ReadAll(req.Body)
 		assert.Nil(t, err, "Bad request body")
-		assert.JSONEq(t, fmt.Sprintf(exampleCreateServiceRequest, port), string(body), "Bad request body")
+		assert.JSONEq(t, fmt.Sprintf(examplePublishedServiceRequest, port), string(body), "Bad request body")
 
 		io.WriteString(rw, exampleService)
 	}
-	internalPort := &CreateServiceRequest{
+	internalPort := &CreatePublishedServiceRequest{
 		InternalPort: intToPtr(port),
 	}
 
-	service, err := skytap.Services.Create(context.Background(), "123", "456", "789", internalPort)
+	service, err := skytap.PublishedServices.Create(context.Background(), "123", "456", "789", internalPort)
 	assert.Nil(t, err, "Bad API method")
 
-	var serviceExpected Service
+	var serviceExpected PublishedService
 	err = json.Unmarshal([]byte(exampleService), &serviceExpected)
-	assert.Equal(t, serviceExpected, *service, "Bad service")
+	assert.Equal(t, serviceExpected, *service, "Bad publishedService")
 }
 
 func TestReadService(t *testing.T) {
-	exampleService := fmt.Sprintf(exampleCreateServiceResponse, 8080, 8080)
+	exampleService := fmt.Sprintf(examplePublishedServiceResponse, 8080, 8080)
 
 	skytap, hs, handler := createClient(t)
 	defer hs.Close()
@@ -79,22 +79,22 @@ func TestReadService(t *testing.T) {
 		io.WriteString(rw, exampleService)
 	}
 
-	service, err := skytap.Services.Get(context.Background(), "123", "456", "789", "abc")
+	service, err := skytap.PublishedServices.Get(context.Background(), "123", "456", "789", "abc")
 	assert.Nil(t, err, "Bad API method")
 
-	var serviceExpected Service
+	var serviceExpected PublishedService
 	err = json.Unmarshal([]byte(exampleService), &serviceExpected)
 	assert.Equal(t, serviceExpected, *service, "Bad Interface")
 }
 
 func TestUpdateService(t *testing.T) {
 	port := 8081
-	exampleService := fmt.Sprintf(exampleCreateServiceResponse, port, port)
+	exampleService := fmt.Sprintf(examplePublishedServiceResponse, port, port)
 
 	skytap, hs, handler := createClient(t)
 	defer hs.Close()
 
-	var service Service
+	var service PublishedService
 	json.Unmarshal([]byte(exampleService), &service)
 
 	var deletePhase = true
@@ -110,21 +110,21 @@ func TestUpdateService(t *testing.T) {
 
 			body, err := ioutil.ReadAll(req.Body)
 			assert.Nil(t, err, "Bad request body")
-			assert.JSONEq(t, fmt.Sprintf(exampleCreateServiceRequest, port), string(body), "Bad request body")
+			assert.JSONEq(t, fmt.Sprintf(examplePublishedServiceRequest, port), string(body), "Bad request body")
 
 			io.WriteString(rw, exampleService)
 		}
 	}
 
-	opts := &UpdateServiceRequest{
-		CreateServiceRequest{
+	opts := &UpdatePublishedServiceRequest{
+		CreatePublishedServiceRequest{
 			InternalPort: intToPtr(port),
 		},
 	}
-	serviceUpdate, err := skytap.Services.Update(context.Background(), "123", "456", "789", "abc", opts)
+	serviceUpdate, err := skytap.PublishedServices.Update(context.Background(), "123", "456", "789", "abc", opts)
 	assert.Nil(t, err, "Bad API method")
 
-	assert.Equal(t, service, *serviceUpdate, "Bad service")
+	assert.Equal(t, service, *serviceUpdate, "Bad publishedService")
 }
 
 func TestDeleteService(t *testing.T) {
@@ -136,7 +136,7 @@ func TestDeleteService(t *testing.T) {
 		assert.Equal(t, "DELETE", req.Method, "Bad method")
 	}
 
-	err := skytap.Services.Delete(context.Background(), "123", "456", "789", "abc")
+	err := skytap.PublishedServices.Delete(context.Background(), "123", "456", "789", "abc")
 	assert.Nil(t, err, "Bad API method")
 }
 
@@ -148,10 +148,10 @@ func TestListServices(t *testing.T) {
 		assert.Equal(t, "/v2/configurations/123/vms/456/interfaces/789/services", req.URL.Path, "Bad path")
 		assert.Equal(t, "GET", req.Method, "Bad method")
 
-		io.WriteString(rw, exampleServiceListResponse)
+		io.WriteString(rw, examplePublishedServiceListResponse)
 	}
 
-	result, err := skytap.Services.List(context.Background(), "123", "456", "789")
+	result, err := skytap.PublishedServices.List(context.Background(), "123", "456", "789")
 	assert.Nil(t, err, "Bad API method")
 
 	var found = false
@@ -161,5 +161,5 @@ func TestListServices(t *testing.T) {
 			break
 		}
 	}
-	assert.True(t, found, "Service not found")
+	assert.True(t, found, "PublishedService not found")
 }

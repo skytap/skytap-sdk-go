@@ -67,7 +67,7 @@ type Interface struct {
 	Hostname            *string              `json:"hostname"`
 	MAC                 *string              `json:"mac"`
 	ServicesCount       *int                 `json:"services_count"`
-	Services            []Service            `json:"services"`
+	Services            []PublishedService   `json:"services"`
 	PublicIPsCount      *int                 `json:"public_ips_count"`
 	PublicIPs           []map[string]string  `json:"public_ips"`
 	VMID                *string              `json:"vm_id"`

@@ -41,13 +41,13 @@ type Client struct {
 	Credentials CredentialsProvider
 
 	// Services used for communicating with the API
-	Projects     ProjectsService
-	Environments EnvironmentsService
-	Templates    TemplatesService
-	Networks     NetworksService
-	VMs          VMsService
-	Interfaces   InterfacesService
-	Services     ServicesService
+	Projects          ProjectsService
+	Environments      EnvironmentsService
+	Templates         TemplatesService
+	Networks          NetworksService
+	VMs               VMsService
+	Interfaces        InterfacesService
+	PublishedServices PublishedServicesService
 
 	retryAfter int
 	retryCount int
@@ -132,7 +132,7 @@ func NewClient(settings Settings) (*Client, error) {
 	client.Networks = &NetworksServiceClient{&client}
 	client.VMs = &VMsServiceClient{&client}
 	client.Interfaces = &InterfacesServiceClient{&client}
-	client.Services = &ServicesServiceClient{&client}
+	client.PublishedServices = &PublishedServicesServiceClient{&client}
 
 	client.retryAfter = defRetryAfter
 	client.retryCount = defRetryCount
