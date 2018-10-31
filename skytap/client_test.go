@@ -54,6 +54,28 @@ func TestRetryWithFailure(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, errorResponse.Response.StatusCode)
 }
 
+func TestRetryWithBusy409(t *testing.T) {
+	requestCounter := 0
+	skytap, hs, handler := createClient(t)
+	skytap.retryCount = 1
+	defer hs.Close()
+
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		rw.Header().Add("Retry-After", "2")
+		rw.WriteHeader(http.StatusConflict)
+		requestCounter++
+	}
+
+	_, err := skytap.Projects.Get(context.Background(), 12345)
+	errorResponse := err.(*ErrorResponse)
+
+	assert.Equal(t, http.StatusConflict, errorResponse.Response.StatusCode)
+	assert.Equal(t, 2, *errorResponse.RetryAfter)
+	assert.True(t, errorResponse.RequiresRetry)
+	assert.Equal(t, 2, requestCounter)
+	assert.Equal(t, 3, testingRetryCount)
+}
+
 func TestRetryWithBusy423(t *testing.T) {
 	requestCounter := 0
 	skytap, hs, handler := createClient(t)
