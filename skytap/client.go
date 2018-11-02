@@ -23,7 +23,7 @@ const (
 	headerRetryAfter = "Retry-After"
 
 	defRetryAfter = 10
-	defRetryCount = 6
+	defRetryCount = 30
 )
 
 // Client is a client to manage and configure the skytap cloud
@@ -199,7 +199,7 @@ func (c *Client) do(ctx context.Context, req *http.Request, v interface{}) (*htt
 			makeRequest = false
 		} else if err.(*ErrorResponse).RequiresRetry {
 			seconds := *err.(*ErrorResponse).RetryAfter
-			log.Printf("retrying after %d second(s)\n", seconds)
+			log.Printf("[INFO] retrying after %d second(s)\n", seconds)
 			time.Sleep(time.Duration(seconds) * time.Second)
 		} else {
 			makeRequest = false
