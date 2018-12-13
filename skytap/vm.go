@@ -58,10 +58,10 @@ type VM struct {
 
 // Hardware describes the VM's hardware configuration
 type Hardware struct {
-	CPUs                 *int    `json:"cpus,omitempty"`
+	CPUs                 *int    `json:"cpus"`
 	SupportsMulticore    *bool   `json:"supports_multicore"`
 	CpusPerSocket        *int    `json:"cpus_per_socket"`
-	RAM                  *int    `json:"ram,omitempty"`
+	RAM                  *int    `json:"ram"`
 	SVMs                 *int    `json:"svms"`
 	GuestOS              *string `json:"guestOS"`
 	MaxCPUs              *int    `json:"max_cpus"`
