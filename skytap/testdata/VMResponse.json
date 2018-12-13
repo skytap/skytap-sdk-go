@@ -4,10 +4,10 @@
   "runstate": "stopped",
   "rate_limited": false,
   "hardware": {
-    "cpus": 1,
+    "cpus": 12,
     "supports_multicore": true,
     "cpus_per_socket": 1,
-    "ram": 2048,
+    "ram": 8192,
     "svms": 2,
     "guestOS": "rhel7-64",
     "max_cpus": 12,

@@ -184,6 +184,8 @@ type createVMRequestAPI struct {
 type UpdateVMRequest struct {
 	Name     *string     `json:"name,omitempty"`
 	Runstate *VMRunstate `json:"runstate,omitempty"`
+	CPUs     *int        `json:"cpus,omitempty"`
+	RAM      *int        `json:"ram,omitempty"`
 }
 
 // VMListResult is the listing request specific struct

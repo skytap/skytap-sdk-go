@@ -1,5 +1,6 @@
 TEST?=$$(go list ./...)
 GOFMT_FILES?=$$(find . -name '*.go')
+GOIMPORT_FILES?=$$(find . -type f -name '*.go' -not -path './vendor/*')
 PKG_NAME=skytap
 
 default: build
@@ -39,5 +40,8 @@ test-compile:
 lint:
 	golint skytap
 
-.PHONY: build test vet fmt fmtcheck test-compile lint
+imports:
+	goimports -w $(GOIMPORT_FILES)
+
+.PHONY: build test vet fmt fmtcheck test-compile lint imports
 
