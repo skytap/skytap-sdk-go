@@ -58,10 +58,10 @@ type VM struct {
 
 // Hardware describes the VM's hardware configuration
 type Hardware struct {
-	CPUs                 *int    `json:"cpus"`
+	CPUs                 *int    `json:"cpus,omitempty"`
 	SupportsMulticore    *bool   `json:"supports_multicore"`
 	CpusPerSocket        *int    `json:"cpus_per_socket"`
-	RAM                  *int    `json:"ram"`
+	RAM                  *int    `json:"ram,omitempty"`
 	SVMs                 *int    `json:"svms"`
 	GuestOS              *string `json:"guestOS"`
 	MaxCPUs              *int    `json:"max_cpus"`
@@ -182,10 +182,14 @@ type createVMRequestAPI struct {
 
 // UpdateVMRequest describes the update the VM data
 type UpdateVMRequest struct {
-	Name     *string     `json:"name,omitempty"`
-	Runstate *VMRunstate `json:"runstate,omitempty"`
-	CPUs     *int        `json:"cpus,omitempty"`
-	RAM      *int        `json:"ram,omitempty"`
+	Name     *string         `json:"name,omitempty"`
+	Runstate *VMRunstate     `json:"runstate,omitempty"`
+	Hardware *UpdateHardware `json:"hardware,omitempty"`
+}
+
+type UpdateHardware struct {
+	CPUs *int `json:"cpus,omitempty"`
+	RAM  *int `json:"ram,omitempty"`
 }
 
 // VMListResult is the listing request specific struct

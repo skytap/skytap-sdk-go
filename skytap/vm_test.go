@@ -91,7 +91,7 @@ func TestUpdateVM(t *testing.T) {
 
 		body, err := ioutil.ReadAll(req.Body)
 		assert.Nil(t, err, "Bad request body")
-		assert.JSONEq(t, `{"name": "updated vm", "runstate":"running", "cpus": 12, "ram": 8192}`, string(body), "Bad request body")
+		assert.JSONEq(t, `{"name": "updated vm", "runstate":"running", "hardware" : {"cpus": 12, "ram": 8192}}`, string(body), "Bad request body")
 
 		io.WriteString(rw, string(bytes))
 	}
@@ -99,8 +99,10 @@ func TestUpdateVM(t *testing.T) {
 	opts := &UpdateVMRequest{
 		Name:     strToPtr(*vm.Name),
 		Runstate: vmRunStateToPtr(*vm.Runstate),
-		CPUs:     intToPtr(*vm.Hardware.CPUs),
-		RAM:      intToPtr(*vm.Hardware.RAM),
+		Hardware: &UpdateHardware{
+			CPUs: intToPtr(*vm.Hardware.CPUs),
+			RAM:  intToPtr(*vm.Hardware.RAM),
+		},
 	}
 	vmUpdate, err := skytap.VMs.Update(context.Background(), "123", "456", opts)
 	assert.Nil(t, err, "Bad API method")
