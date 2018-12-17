@@ -17,7 +17,7 @@ const examplePublishedServiceRequest = `{
 }`
 
 const examplePublishedServiceResponse = `{
-    "id": %d,
+    "id": "%d",
     "internal_port": %d,
     "external_ip": "services-uswest.skytap.com",
     "external_port": 26160
