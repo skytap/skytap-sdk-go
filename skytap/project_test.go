@@ -27,7 +27,8 @@ func TestCreateProject(t *testing.T) {
 			body, err := ioutil.ReadAll(req.Body)
 			assert.Nil(t, err)
 			assert.JSONEq(t, `{"name":"test-project","summary":"test project"}`, string(body))
-			io.WriteString(rw, `{"id": "12345", "name": "test-project"}`)
+			_, err = io.WriteString(rw, `{"id": "12345", "name": "test-project"}`)
+			assert.NoError(t, err)
 			createPhase = false
 		} else {
 			if req.URL.Path != "/projects/12345" {
@@ -39,7 +40,8 @@ func TestCreateProject(t *testing.T) {
 			body, err := ioutil.ReadAll(req.Body)
 			assert.Nil(t, err)
 			assert.JSONEq(t, `{"id": "12345","name":"test-project","summary":"test project"}`, string(body))
-			io.WriteString(rw, `{"id": "12345", "name": "test-project", "summary": "test project"}`)
+			_, err = io.WriteString(rw, `{"id": "12345", "name": "test-project", "summary": "test project"}`)
+			assert.NoError(t, err)
 		}
 	}
 
@@ -65,7 +67,8 @@ func TestReadProject(t *testing.T) {
 		if req.Method != "GET" {
 			t.Error("Bad method")
 		}
-		io.WriteString(rw, `{"id": "12345", "name": "test-project", "summary": "test project"}`)
+		_, err := io.WriteString(rw, `{"id": "12345", "name": "test-project", "summary": "test project"}`)
+		assert.NoError(t, err)
 	}
 
 	projectRead, err := skytap.Projects.Get(context.Background(), 12345)
@@ -88,7 +91,8 @@ func TestUpdateProject(t *testing.T) {
 		body, err := ioutil.ReadAll(req.Body)
 		assert.Nil(t, err)
 		assert.JSONEq(t, `{"id": "12345","name":"updated name","summary":"updated summary"}`, string(body))
-		io.WriteString(rw, `{"id": "12345", "name": "updated name", "summary": "updated summary"}`)
+		_, err = io.WriteString(rw, `{"id": "12345", "name": "updated name", "summary": "updated summary"}`)
+		assert.NoError(t, err)
 	}
 
 	opts := &Project{
@@ -133,7 +137,7 @@ func TestListProjects(t *testing.T) {
 		if req.Method != "GET" {
 			t.Error("Bad method")
 		}
-		io.WriteString(rw, `[{
+		_, err := io.WriteString(rw, `[{
         "id": "12345",
         "url": "https://cloud.skytap.com/projects/12345",
         "name": "updated name",
@@ -141,6 +145,7 @@ func TestListProjects(t *testing.T) {
         "show_project_members": true,
         "auto_add_role_name": null
     }]`)
+		assert.NoError(t, err)
 	}
 
 	result, err := skytap.Projects.List(context.Background())

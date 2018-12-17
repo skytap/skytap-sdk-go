@@ -22,6 +22,24 @@
         "type": "SCSI",
         "controller": "0",
         "lun": "0"
+      }, {
+        "id": "disk-20142867-38186761-scsi-0-1",
+        "size": 51200,
+        "type": "SCSI",
+        "controller": "0",
+        "lun": "1"
+      }, {
+        "id": "disk-20142867-38186761-scsi-0-2",
+        "size": 51200,
+        "type": "SCSI",
+        "controller": "0",
+        "lun": "2"
+      }, {
+        "id": "disk-20142867-38186761-scsi-0-3",
+        "size": 51200,
+        "type": "SCSI",
+        "controller": "0",
+        "lun": "3"
       }
     ],
     "storage": 51200,

@@ -17,7 +17,7 @@ const examplePublishedServiceRequest = `{
 }`
 
 const examplePublishedServiceResponse = `{
-    "id": %d,
+    "id": "%d",
     "internal_port": %d,
     "external_ip": "services-uswest.skytap.com",
     "external_port": 26160
@@ -53,7 +53,8 @@ func TestCreateService(t *testing.T) {
 		assert.Nil(t, err, "Bad request body")
 		assert.JSONEq(t, fmt.Sprintf(examplePublishedServiceRequest, port), string(body), "Bad request body")
 
-		io.WriteString(rw, exampleService)
+		_, err = io.WriteString(rw, exampleService)
+		assert.NoError(t, err)
 	}
 	internalPort := &CreatePublishedServiceRequest{
 		InternalPort: intToPtr(port),
@@ -77,7 +78,8 @@ func TestReadService(t *testing.T) {
 		assert.Equal(t, "/v2/configurations/123/vms/456/interfaces/789/services/abc", req.URL.Path, "Bad path")
 		assert.Equal(t, "GET", req.Method, "Bad method")
 
-		io.WriteString(rw, exampleService)
+		_, err := io.WriteString(rw, exampleService)
+		assert.NoError(t, err)
 	}
 
 	service, err := skytap.PublishedServices.Get(context.Background(), "123", "456", "789", "abc")
@@ -96,7 +98,8 @@ func TestUpdateService(t *testing.T) {
 	defer hs.Close()
 
 	var service PublishedService
-	json.Unmarshal([]byte(exampleService), &service)
+	err := json.Unmarshal([]byte(exampleService), &service)
+	assert.NoError(t, err)
 
 	var deletePhase = true
 
@@ -113,7 +116,8 @@ func TestUpdateService(t *testing.T) {
 			assert.Nil(t, err, "Bad request body")
 			assert.JSONEq(t, fmt.Sprintf(examplePublishedServiceRequest, port), string(body), "Bad request body")
 
-			io.WriteString(rw, exampleService)
+			_, err = io.WriteString(rw, exampleService)
+			assert.NoError(t, err)
 		}
 	}
 
@@ -149,7 +153,8 @@ func TestListServices(t *testing.T) {
 		assert.Equal(t, "/v2/configurations/123/vms/456/interfaces/789/services", req.URL.Path, "Bad path")
 		assert.Equal(t, "GET", req.Method, "Bad method")
 
-		io.WriteString(rw, examplePublishedServiceListResponse)
+		_, err := io.WriteString(rw, examplePublishedServiceListResponse)
+		assert.NoError(t, err)
 	}
 
 	result, err := skytap.PublishedServices.List(context.Background(), "123", "456", "789")
