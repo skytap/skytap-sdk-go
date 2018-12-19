@@ -472,7 +472,7 @@ func matchUpExistingDisks(vm *VM, identifications []DiskIdentification, ignored 
 
 func matchUpNewDisks(vm *VM, identifications []DiskIdentification, ignored map[string]RemoveDisk) {
 	for _, id := range identifications {
-		if id.ID == nil {
+		if id.ID == nil || *id.ID == "" {
 			for idx, disk := range vm.Hardware.Disks {
 				// ignore os disk
 				if idx > 0 {
