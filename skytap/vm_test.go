@@ -416,11 +416,11 @@ func readTestFile(t *testing.T, name string) []byte {
 }
 
 func TestBuildListOfDiskSizes(t *testing.T) {
-	removes := make(map[string]RemoveDisk)
-	removes["1"] = RemoveDisk{
+	removes := make(map[string]ExistingDisk)
+	removes["1"] = ExistingDisk{
 		ID: strToPtr("1"),
 	}
-	removes["2"] = RemoveDisk{
+	removes["2"] = ExistingDisk{
 		ID: strToPtr("2"),
 	}
 	nameSizes := []DiskIdentification{
@@ -433,7 +433,7 @@ func TestBuildListOfDiskSizes(t *testing.T) {
 			UpdateDisks: &UpdateDisks{
 				NewDisks:           []int{51200, 51201, 51200},
 				DiskIdentification: nameSizes,
-				RemoveDisks:        removes,
+				ExistingDisks:      removes,
 			},
 		},
 	}
@@ -534,12 +534,31 @@ func TestBuildRemoveList(t *testing.T) {
 
 	// expecting to delete disk-20142867-38186761-scsi-0-3
 	nameSizes := []DiskIdentification{
-		{strToPtr("disk-20142867-38186761-scsi-0-1"), intToPtr(1), strToPtr("old1")},
-		{strToPtr("disk-20142867-38186761-scsi-0-2"), intToPtr(1), strToPtr("old2")},
-		{nil, intToPtr(1), strToPtr("new1")},
+		{strToPtr("disk-20142867-38186761-scsi-0-1"), intToPtr(51200), strToPtr("old1")},
+		{strToPtr("disk-20142867-38186761-scsi-0-2"), intToPtr(51200), strToPtr("old2")},
+		{nil, intToPtr(51200), strToPtr("new1")},
 	}
 
 	removes := buildRemoveList(&vm, nameSizes)
 
-	assert.Equal(t, RemoveDisk{ID: strToPtr("disk-20142867-38186761-scsi-0-3")}, removes["disk-20142867-38186761-scsi-0-3"])
+	assert.Equal(t, ExistingDisk{ID: strToPtr("disk-20142867-38186761-scsi-0-3")}, removes["disk-20142867-38186761-scsi-0-3"])
+}
+
+func TestBuildUpdateList(t *testing.T) {
+	response := fmt.Sprintf(string(readTestFile(t, "VMResponse.json")), 456)
+	var vm VM
+	err := json.Unmarshal([]byte(response), &vm)
+	assert.NoError(t, err)
+
+	// expecting to delete disk-20142867-38186761-scsi-0-3
+	nameSizes := []DiskIdentification{
+		{strToPtr("disk-20142867-38186761-scsi-0-1"), intToPtr(51199), strToPtr("old1")},
+		{strToPtr("disk-20142867-38186761-scsi-0-2"), intToPtr(51201), strToPtr("old2")},
+		{nil, intToPtr(51200), strToPtr("new1")},
+	}
+
+	updates := buildUpdateList(&vm, nameSizes)
+
+	assert.Equal(t, ExistingDisk{ID: strToPtr("disk-20142867-38186761-scsi-0-2"),
+		Size: intToPtr(51201)}, updates["disk-20142867-38186761-scsi-0-2"])
 }
