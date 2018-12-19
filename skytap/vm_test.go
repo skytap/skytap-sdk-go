@@ -72,6 +72,7 @@ func TestReadVM(t *testing.T) {
 	assert.Equal(t, vmExpected, *vm, "Bad VM")
 }
 
+// Not testing stopping and starting.
 func TestUpdateVM(t *testing.T) {
 	response := fmt.Sprintf(string(readTestFile(t, "VMResponse.json")), 456)
 
@@ -219,32 +220,92 @@ func TestUpdateVM(t *testing.T) {
 }
 
 // Updating cpu and ram is possible on their own
+// Testing stopping and starting.
 func TestUpdateCPURAMVM(t *testing.T) {
 	response := fmt.Sprintf(string(readTestFile(t, "VMResponse.json")), 456)
 
 	skytap, hs, handler := createClient(t)
 	defer hs.Close()
 
+	var vmRunning VM
+	err := json.Unmarshal([]byte(response), &vmRunning)
+	assert.NoError(t, err)
+	vmRunning.Runstate = vmRunStateToPtr(VMRunstateRunning)
+	bytesRunning, err := json.Marshal(&vmRunning)
+	assert.Nil(t, err, "Bad vm")
+
 	var vm VM
-	err := json.Unmarshal([]byte(response), &vm)
+	err = json.Unmarshal([]byte(response), &vm)
 	assert.NoError(t, err)
 	*vm.Name = "updated vm"
 	*vm.Hardware.CPUs = 12
 	*vm.Hardware.RAM = 8192
-
 	bytes, err := json.Marshal(&vm)
 	assert.Nil(t, err, "Bad vm")
 
+	first := true
+	second := true
+	third := true
+	fourth := true
+	fifth := true
+	sixth := true
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
-		assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
-		assert.Equal(t, "PUT", req.Method, "Bad method")
+		if first {
+			// get vm
+			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
+			assert.Equal(t, "GET", req.Method, "Bad method")
 
-		body, err := ioutil.ReadAll(req.Body)
-		assert.Nil(t, err, "Bad request body")
-		assert.JSONEq(t, `{"name": "updated vm", "hardware" : {"cpus": 12, "ram": 8192}}`, string(body), "Bad request body")
+			_, err := io.WriteString(rw, string(bytesRunning))
+			assert.NoError(t, err)
+			first = false
+		} else if second {
+			// turn to stopped
+			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
+			assert.Equal(t, "PUT", req.Method, "Bad method")
 
-		_, err = io.WriteString(rw, string(bytes))
-		assert.NoError(t, err)
+			body, err := ioutil.ReadAll(req.Body)
+			assert.Nil(t, err, "Bad request body")
+			assert.JSONEq(t, `{"runstate":"stopped"}`, string(body), "Bad request body")
+
+			_, err = io.WriteString(rw, response)
+			assert.NoError(t, err)
+			second = false
+		} else if third {
+			// get vm to confirm it is stopped
+			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
+			assert.Equal(t, "GET", req.Method, "Bad method")
+
+			_, err := io.WriteString(rw, response)
+			assert.NoError(t, err)
+			third = false
+		} else if fourth {
+			// update
+			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
+			assert.Equal(t, "PUT", req.Method, "Bad method")
+
+			body, err := ioutil.ReadAll(req.Body)
+			assert.Nil(t, err, "Bad request body")
+			assert.JSONEq(t, `{"name": "updated vm", "hardware" : {"cpus": 12, "ram": 8192}}`, string(body), "Bad request body")
+
+			_, err = io.WriteString(rw, string(bytes))
+			assert.NoError(t, err)
+			fourth = false
+		} else if fifth {
+			// switch back to running
+			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
+			assert.Equal(t, "PUT", req.Method, "Bad method")
+
+			body, err := ioutil.ReadAll(req.Body)
+			assert.Nil(t, err, "Bad request body")
+			assert.JSONEq(t, `{"runstate":"running"}`, string(body), "Bad request body")
+
+			_, err = io.WriteString(rw, string(bytesRunning))
+			assert.NoError(t, err)
+			fifth = false
+		} else {
+			// dont bother waiting for vm to be running
+			sixth = false
+		}
 	}
 
 	opts := &UpdateVMRequest{
@@ -257,7 +318,15 @@ func TestUpdateCPURAMVM(t *testing.T) {
 	vmUpdate, err := skytap.VMs.Update(context.Background(), "123", "456", opts)
 	assert.Nil(t, err, "Bad API method")
 
+	assert.False(t, first)
+	assert.False(t, second)
+	assert.False(t, third)
+	assert.False(t, fourth)
+	assert.False(t, fifth)
+	assert.True(t, sixth)
+
 	assert.Equal(t, vm, *vmUpdate, "Bad vm")
+	assert.Equal(t, VMRunstateStopped, *vmUpdate.Runstate, "still stopped")
 }
 
 // Updating runstate can only be done on its own
@@ -294,6 +363,7 @@ func TestUpdateRunstateVM(t *testing.T) {
 	assert.Nil(t, err, "Bad API method")
 
 	assert.Equal(t, vm, *vmUpdate, "Bad vm")
+	assert.Equal(t, VMRunstateRunning, *vmUpdate.Runstate, "running")
 }
 
 func TestDeleteVM(t *testing.T) {
