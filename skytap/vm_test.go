@@ -278,7 +278,7 @@ func TestUpdateCPURAMVM(t *testing.T) {
 			_, err := io.WriteString(rw, response)
 			assert.NoError(t, err)
 			third = false
-		}else if fourth {
+		} else if fourth {
 			// update
 			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
 			assert.Equal(t, "PUT", req.Method, "Bad method")
