@@ -459,8 +459,7 @@ func matchUpExistingDisks(vm *VM, identifications []DiskIdentification, ignored 
 		if idx > 0 {
 			for _, id := range identifications {
 				if id.ID != nil && *id.ID == *vm.Hardware.Disks[idx].ID {
-					_, ignore := ignored[*id.ID]
-					if !ignore {
+					if _, ok := ignored[*id.ID]; !ok {
 						vm.Hardware.Disks[idx].Name = id.Name
 						break
 					}
