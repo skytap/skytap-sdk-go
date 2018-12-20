@@ -90,6 +90,7 @@ func TestUpdateVM(t *testing.T) {
 	err = json.Unmarshal([]byte(response), &vmDisksAdded)
 	assert.NoError(t, err)
 	vmDisksAdded.Hardware.Disks = vmDisksAdded.Hardware.Disks[0:3]
+	vmDisksAdded.Hardware.Disks[0].Size = intToPtr(10000)
 	vmDisksAdded.Hardware.Disks = append(vmDisksAdded.Hardware.Disks, *createDisk("disk-20142867-38186761-scsi-0-3", nil))
 	bytesDisksAdded, err := json.Marshal(&vmDisksAdded)
 	assert.Nil(t, err, "Bad vm")
@@ -124,7 +125,7 @@ func TestUpdateVM(t *testing.T) {
 
 			body, err := ioutil.ReadAll(req.Body)
 			assert.Nil(t, err, "Bad request body")
-			assert.JSONEq(t, `{"name": "updated vm", "hardware" : {"cpus": 12, "ram": 8192, "disks": {"new": [51200]}}}`, string(body), "Bad request body")
+			assert.JSONEq(t, `{"name": "updated vm", "hardware" : {"cpus": 12, "ram": 8192, "disks": {"new": [51200], "existing": {"disk-20142867-38186761-scsi-0-0" : {"id":"disk-20142867-38186761-scsi-0-0", "size": 10000}}}}}`, string(body), "Bad request body")
 
 			_, err = io.WriteString(rw, string(bytesCurrent))
 			assert.NoError(t, err)
@@ -194,6 +195,7 @@ func TestUpdateVM(t *testing.T) {
 			UpdateDisks: &UpdateDisks{
 				NewDisks:           []int{51200},
 				DiskIdentification: diskIdentification,
+				OSSize:             intToPtr(10000),
 			},
 		},
 	}
@@ -603,4 +605,26 @@ func TestBuildUpdateList(t *testing.T) {
 
 	assert.Equal(t, ExistingDisk{ID: strToPtr("disk-20142867-38186761-scsi-0-2"),
 		Size: intToPtr(51201)}, updates["disk-20142867-38186761-scsi-0-2"])
+}
+
+func TestOSDiskResize(t *testing.T) {
+	response := fmt.Sprintf(string(readTestFile(t, "VMResponse.json")), 456)
+	var vm VM
+	err := json.Unmarshal([]byte(response), &vm)
+	assert.NoError(t, err)
+
+	nameSizes := []DiskIdentification{
+		{strToPtr("disk-20142867-38186761-scsi-0-1"), intToPtr(51199), strToPtr("old1")},
+		{strToPtr("disk-20142867-38186761-scsi-0-2"), intToPtr(51201), strToPtr("old2")},
+		{nil, intToPtr(51200), strToPtr("new1")},
+	}
+	updates := buildUpdateList(&vm, nameSizes)
+
+	addOSDiskResize(nil, &vm, updates)
+	assert.Equal(t, 1, len(updates))
+
+	addOSDiskResize(intToPtr(10000), &vm, updates)
+	assert.Equal(t, 2, len(updates))
+	assert.Equal(t, ExistingDisk{ID: strToPtr("disk-20142867-38186761-scsi-0-0"),
+		Size: intToPtr(10000)}, updates["disk-20142867-38186761-scsi-0-0"])
 }
