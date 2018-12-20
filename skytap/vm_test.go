@@ -130,7 +130,7 @@ func TestUpdateVM(t *testing.T) {
 			assert.NoError(t, err)
 			second = false
 		} else if third {
-			// does it need a retry block?
+			// wait until not busy
 			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
 			assert.Equal(t, "GET", req.Method, "Bad method")
 
@@ -158,7 +158,7 @@ func TestUpdateVM(t *testing.T) {
 			assert.NoError(t, err)
 			fifth = false
 		} else if sixth {
-			// first retry - still not as expected
+			// wait until not busy
 			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
 			assert.Equal(t, "GET", req.Method, "Bad method")
 
@@ -243,12 +243,27 @@ func TestUpdateCPURAMVM(t *testing.T) {
 	bytes, err := json.Marshal(&vm)
 	assert.Nil(t, err, "Bad vm")
 
+	var vmEnriched VM
+	err = json.Unmarshal([]byte(response), &vmEnriched)
+	assert.NoError(t, err)
+	*vmEnriched.Name = "updated vm"
+	*vmEnriched.Hardware.CPUs = 12
+	*vmEnriched.Hardware.RAM = 8192
+	vmEnriched.Hardware.Disks[1].Name = strToPtr("1")
+	vmEnriched.Hardware.Disks[2].Name = strToPtr("2")
+	vmEnriched.Hardware.Disks[3].Name = strToPtr("3")
+	vmEnriched.Runstate = vmRunStateToPtr(VMRunstateRunning)
+	bytesEnriched, err := json.Marshal(&vmEnriched)
+	assert.Nil(t, err, "Bad vm")
+
 	first := true
 	second := true
 	third := true
 	fourth := true
 	fifth := true
 	sixth := true
+	seventh := true
+	eighth := true
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
 		if first {
 			// get vm
@@ -291,6 +306,22 @@ func TestUpdateCPURAMVM(t *testing.T) {
 			assert.NoError(t, err)
 			fourth = false
 		} else if fifth {
+			// wait until not busy
+			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
+			assert.Equal(t, "GET", req.Method, "Bad method")
+
+			_, err := io.WriteString(rw, string(bytes))
+			assert.NoError(t, err)
+			fifth = false
+		} else if sixth {
+			// get updated vm
+			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
+			assert.Equal(t, "GET", req.Method, "Bad method")
+
+			_, err := io.WriteString(rw, string(bytesEnriched))
+			assert.NoError(t, err)
+			sixth = false
+		} else if seventh {
 			// switch back to running
 			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
 			assert.Equal(t, "PUT", req.Method, "Bad method")
@@ -301,11 +332,17 @@ func TestUpdateCPURAMVM(t *testing.T) {
 
 			_, err = io.WriteString(rw, string(bytesRunning))
 			assert.NoError(t, err)
-			fifth = false
+			seventh = false
 		} else {
 			// dont bother waiting for vm to be running
-			sixth = false
+			eighth = false
 		}
+	}
+
+	diskIDs := []DiskIdentification{
+		{strToPtr("disk-20142867-38186761-scsi-0-1"), intToPtr(51200), strToPtr("1")},
+		{strToPtr("disk-20142867-38186761-scsi-0-2"), intToPtr(51200), strToPtr("2")},
+		{strToPtr("disk-20142867-38186761-scsi-0-3"), intToPtr(51200), strToPtr("3")},
 	}
 
 	opts := &UpdateVMRequest{
@@ -313,6 +350,9 @@ func TestUpdateCPURAMVM(t *testing.T) {
 		Hardware: &UpdateHardware{
 			CPUs: intToPtr(*vm.Hardware.CPUs),
 			RAM:  intToPtr(*vm.Hardware.RAM),
+			UpdateDisks: &UpdateDisks{
+				DiskIdentification: diskIDs,
+			},
 		},
 	}
 	vmUpdate, err := skytap.VMs.Update(context.Background(), "123", "456", opts)
@@ -323,10 +363,12 @@ func TestUpdateCPURAMVM(t *testing.T) {
 	assert.False(t, third)
 	assert.False(t, fourth)
 	assert.False(t, fifth)
-	assert.True(t, sixth)
+	assert.False(t, sixth)
+	assert.False(t, seventh)
+	assert.True(t, eighth)
 
-	assert.Equal(t, vm, *vmUpdate, "Bad vm")
-	assert.Equal(t, VMRunstateStopped, *vmUpdate.Runstate, "still stopped")
+	assert.Equal(t, vmEnriched, *vmUpdate, "Bad vm")
+	assert.Equal(t, VMRunstateRunning, *vmUpdate.Runstate, "running")
 }
 
 // Updating runstate can only be done on its own
@@ -416,11 +458,11 @@ func readTestFile(t *testing.T, name string) []byte {
 }
 
 func TestBuildListOfDiskSizes(t *testing.T) {
-	removes := make(map[string]RemoveDisk)
-	removes["1"] = RemoveDisk{
+	removes := make(map[string]ExistingDisk)
+	removes["1"] = ExistingDisk{
 		ID: strToPtr("1"),
 	}
-	removes["2"] = RemoveDisk{
+	removes["2"] = ExistingDisk{
 		ID: strToPtr("2"),
 	}
 	nameSizes := []DiskIdentification{
@@ -433,7 +475,7 @@ func TestBuildListOfDiskSizes(t *testing.T) {
 			UpdateDisks: &UpdateDisks{
 				NewDisks:           []int{51200, 51201, 51200},
 				DiskIdentification: nameSizes,
-				RemoveDisks:        removes,
+				ExistingDisks:      removes,
 			},
 		},
 	}
@@ -534,12 +576,31 @@ func TestBuildRemoveList(t *testing.T) {
 
 	// expecting to delete disk-20142867-38186761-scsi-0-3
 	nameSizes := []DiskIdentification{
-		{strToPtr("disk-20142867-38186761-scsi-0-1"), intToPtr(1), strToPtr("old1")},
-		{strToPtr("disk-20142867-38186761-scsi-0-2"), intToPtr(1), strToPtr("old2")},
-		{nil, intToPtr(1), strToPtr("new1")},
+		{strToPtr("disk-20142867-38186761-scsi-0-1"), intToPtr(51200), strToPtr("old1")},
+		{strToPtr("disk-20142867-38186761-scsi-0-2"), intToPtr(51200), strToPtr("old2")},
+		{nil, intToPtr(51200), strToPtr("new1")},
 	}
 
 	removes := buildRemoveList(&vm, nameSizes)
 
-	assert.Equal(t, RemoveDisk{ID: strToPtr("disk-20142867-38186761-scsi-0-3")}, removes["disk-20142867-38186761-scsi-0-3"])
+	assert.Equal(t, ExistingDisk{ID: strToPtr("disk-20142867-38186761-scsi-0-3")}, removes["disk-20142867-38186761-scsi-0-3"])
+}
+
+func TestBuildUpdateList(t *testing.T) {
+	response := fmt.Sprintf(string(readTestFile(t, "VMResponse.json")), 456)
+	var vm VM
+	err := json.Unmarshal([]byte(response), &vm)
+	assert.NoError(t, err)
+
+	// expecting to delete disk-20142867-38186761-scsi-0-3
+	nameSizes := []DiskIdentification{
+		{strToPtr("disk-20142867-38186761-scsi-0-1"), intToPtr(51199), strToPtr("old1")},
+		{strToPtr("disk-20142867-38186761-scsi-0-2"), intToPtr(51201), strToPtr("old2")},
+		{nil, intToPtr(51200), strToPtr("new1")},
+	}
+
+	updates := buildUpdateList(&vm, nameSizes)
+
+	assert.Equal(t, ExistingDisk{ID: strToPtr("disk-20142867-38186761-scsi-0-2"),
+		Size: intToPtr(51201)}, updates["disk-20142867-38186761-scsi-0-2"])
 }
