@@ -250,7 +250,7 @@ func TestUpdateCPURAMVM(t *testing.T) {
 	*vmEnriched.Hardware.CPUs = 12
 	*vmEnriched.Hardware.RAM = 8192
 	vmEnriched.Hardware.Disks[1].Name = strToPtr("1")
-	vmEnriched.Hardware.Disks[2].Name =strToPtr("2")
+	vmEnriched.Hardware.Disks[2].Name = strToPtr("2")
 	vmEnriched.Hardware.Disks[3].Name = strToPtr("3")
 	vmEnriched.Runstate = vmRunStateToPtr(VMRunstateRunning)
 	bytesEnriched, err := json.Marshal(&vmEnriched)
@@ -321,7 +321,7 @@ func TestUpdateCPURAMVM(t *testing.T) {
 			_, err := io.WriteString(rw, string(bytesEnriched))
 			assert.NoError(t, err)
 			sixth = false
-		} else if seventh{
+		} else if seventh {
 			// switch back to running
 			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
 			assert.Equal(t, "PUT", req.Method, "Bad method")
@@ -351,7 +351,7 @@ func TestUpdateCPURAMVM(t *testing.T) {
 			CPUs: intToPtr(*vm.Hardware.CPUs),
 			RAM:  intToPtr(*vm.Hardware.RAM),
 			UpdateDisks: &UpdateDisks{
-				DiskIdentification:diskIDs,
+				DiskIdentification: diskIDs,
 			},
 		},
 	}
