@@ -1,4 +1,4 @@
-TEST?=$$(go list ./...)
+TEST?=$$(go list ./... | grep -v 'vendor')
 GOFMT_FILES?=$$(find . -name '*.go')
 GOIMPORT_FILES?=$$(find . -type f -name '*.go' -not -path './vendor/*')
 PKG_NAME=skytap
@@ -6,10 +6,11 @@ PKG_NAME=skytap
 default: build
 
 build: fmtcheck
+	go mod vendor
 	go install ./skytap
 
 test: fmtcheck
-	go get -t $(TEST)
+	go mod vendor
 	go test -i $(TEST) || exit 1
 	echo $(TEST) | \
 		xargs -t -n4 go test $(TESTARGS) -timeout=30s -parallel=4 -v
