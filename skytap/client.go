@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	"io"
 	"io/ioutil"
 	"log"
@@ -14,6 +14,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/davecgh/go-spew/spew"
 )
 
 const (
@@ -95,6 +97,15 @@ type ErrorResponse struct {
 
 	// RequiresRetry indicates whether a retry is required
 	RequiresRetry bool
+}
+
+// PreRequestRunState tells the central request sending method
+// whether or not to first check the run state of resources.
+type PreRequestRunState struct {
+	environmentID *string
+	vmID          *string
+	environment   []EnvironmentRunstate
+	vm            []VMRunstate
 }
 
 // Error returns a formatted error
@@ -190,9 +201,18 @@ func (c *Client) newRequest(ctx context.Context, method, path string, body inter
 }
 
 func (c *Client) do(ctx context.Context, req *http.Request, v interface{}) (*http.Response, error) {
+	return c.doWithChecks(ctx, req, v, PreRequestRunState{})
+}
+
+func (c *Client) doWithChecks(ctx context.Context, req *http.Request, v interface{}, state PreRequestRunState) (*http.Response, error) {
 	var resp *http.Response
 	var err error
 	var makeRequest = true
+
+	err = c.checkStatePreRequest(ctx, req, state)
+	if err != nil {
+		return nil, err
+	}
 
 	for i := 0; i < c.retryCount+1 && makeRequest; i++ {
 		log.Printf("[DEBUG] SDK request (%#v)\n", spew.Sdump(req))
@@ -309,28 +329,156 @@ func (c *Client) checkResponse(r *http.Response) error {
 	return errorResponse
 }
 
-func (c *Client) retryAfter422(ctx context.Context, path string, v interface{}, opts interface{}) error {
-	var makeRequest = true
-	for i := 0; i < c.retryCount+1 && makeRequest; i++ {
-		req, err := c.newRequest(ctx, "PUT", path, opts)
-		if err != nil {
-			return err
+//func (c *Client) retryAfter422(ctx context.Context, path string, v interface{}, opts interface{}, environmentID string) error {
+//	var makeRequest = true
+//	for i := 0; i < c.retryCount+1 && makeRequest; i++ {
+//		req, err := c.newRequest(ctx, "PUT", path, opts)
+//		if err != nil {
+//			return err
+//		}
+//		_, err = c.doWithChecks(ctx, req, v, buildEnvironmentRequestRunState(environmentID))
+//		if err == nil {
+//			log.Printf("[DEBUG] SDK request successful\n")
+//			makeRequest = false
+//		} else if errorResponse, ok := err.(*ErrorResponse); ok {
+//			if http.StatusUnprocessableEntity == errorResponse.Response.StatusCode {
+//				log.Printf("[INFO] SDK 422 error received: waiting for %d second(s)\n", c.retryAfter)
+//				log.Printf("[DEBUG] SDK 422 error request (%v)\n", req)
+//				time.Sleep(time.Duration(c.retryAfter) * time.Second)
+//			} else {
+//				return err
+//			}
+//		} else {
+//			return err
+//		}
+//	}
+//	return nil
+//}
+
+func (c *Client) checkStatePreRequest(ctx context.Context, req *http.Request, precheck PreRequestRunState) error {
+	if req.Method == http.MethodPost || req.Method == http.MethodPut {
+		checkEnvironment := false
+		checkVM := false
+		if precheck.environmentID != nil && precheck.vmID == nil {
+			checkEnvironment = true
+		} else if precheck.vmID != nil && precheck.vm != nil {
+			checkVM = true
 		}
-		_, err = c.do(ctx, req, v)
-		if err == nil {
-			log.Printf("[DEBUG] SDK request successful\n")
-			makeRequest = false
-		} else if errorResponse, ok := err.(*ErrorResponse); ok {
-			if http.StatusUnprocessableEntity == errorResponse.Response.StatusCode {
-				log.Printf("[INFO] SDK 422 error received: waiting for %d second(s)\n", c.retryAfter)
-				log.Printf("[DEBUG] SDK 422 error request (%v)\n", req)
+		if checkEnvironment || checkVM {
+			var ok bool
+			var err error
+			for i := 0; i < c.retryCount+1; i++ {
+				if checkEnvironment {
+					ok, err = c.getEnvironmentRunState(ctx, precheck.environmentID, precheck.environment)
+				} else {
+					ok, err = c.getVMRunState(ctx, precheck.environmentID, precheck.vmID, precheck.vm)
+				}
+				if err != nil {
+					return err
+				}
+				if ok {
+					return nil
+				}
+				log.Printf("[INFO] SDK Sleeping for (%d) seconds\n", time.Second)
 				time.Sleep(time.Duration(c.retryAfter) * time.Second)
-			} else {
-				return err
 			}
-		} else {
-			return err
 		}
 	}
 	return nil
+}
+
+func (c *Client) getEnvironmentRunState(ctx context.Context, id *string, states []EnvironmentRunstate) (bool, error) {
+	env, err := c.Environments.Get(ctx, *id)
+	if err != nil {
+		return false, err
+	}
+	if env.Runstate == nil {
+		return false, errors.New("environment run state not set")
+	}
+	ok := c.containsEnvironmentRunState(env.Runstate, states)
+	log.Printf("[DEBUG] SDK run state of environment (%s) and require: (%s).\n",
+		*env.Runstate,
+		c.environmentsRunStatesToString(states))
+	return ok, nil
+}
+
+func (c *Client) containsEnvironmentRunState(currentState *EnvironmentRunstate, possibleStates []EnvironmentRunstate) bool {
+	for _, v := range possibleStates {
+		if v == *currentState {
+			return true
+		}
+	}
+	return false
+}
+
+func (c *Client) environmentsRunStatesToString(possibleStates []EnvironmentRunstate) string {
+	var items []string
+	for _, v := range possibleStates {
+		items = append(items, string(v))
+	}
+	return strings.Join(items, ", ")
+}
+
+func (c *Client) getVMRunState(ctx context.Context, environmentID *string, vmID *string, states []VMRunstate) (bool, error) {
+	vm, err := c.VMs.Get(ctx, *environmentID, *vmID)
+	if err != nil {
+		return false, err
+	}
+	if vm.Runstate == nil {
+		return false, errors.New("vm run state not set")
+	}
+	ok := c.containsVMRunState(vm.Runstate, states)
+	log.Printf("[INFO] SDK run state of vm (%s) and require: (%s).\n",
+		*vm.Runstate,
+		c.vMRunStatesToString(states))
+	return ok, nil
+}
+
+func (c *Client) containsVMRunState(currentState *VMRunstate, possibleStates []VMRunstate) bool {
+	for _, v := range possibleStates {
+		if v == *currentState {
+			return true
+		}
+	}
+	return false
+}
+
+func (c *Client) vMRunStatesToString(possibleStates []VMRunstate) string {
+	var items []string
+	for _, v := range possibleStates {
+		items = append(items, string(v))
+	}
+	return strings.Join(items, ", ")
+}
+
+func buildEnvironmentRequestRunState(environmentID string) PreRequestRunState {
+	return PreRequestRunState{
+		environmentID: strToPtr(environmentID),
+		environment: []EnvironmentRunstate{
+			EnvironmentRunstateRunning,
+			EnvironmentRunstateStopped,
+			EnvironmentRunstateSuspended,
+			EnvironmentRunstateHalted},
+	}
+}
+
+func buildVMRequestRunStateStopped(environmentID string, vmID string) PreRequestRunState {
+	return PreRequestRunState{
+		environmentID: strToPtr(environmentID),
+		vmID:          strToPtr(vmID),
+		vm:            []VMRunstate{VMRunstateStopped},
+	}
+}
+
+func buildVMRequestRunState(environmentID string, vmID string) PreRequestRunState {
+	return PreRequestRunState{
+		environmentID: strToPtr(environmentID),
+		vmID:          strToPtr(vmID),
+		vm: []VMRunstate{
+			VMRunstateStopped,
+			VMRunstateHalted,
+			VMRunstateReset,
+			VMRunstateRunning,
+			VMRunstateSuspended},
+	}
 }

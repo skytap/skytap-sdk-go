@@ -166,7 +166,7 @@ func (s *NetworksServiceClient) Create(ctx context.Context, environmentID string
 	}
 
 	var createdNetwork Network
-	_, err = s.client.do(ctx, req, &createdNetwork)
+	_, err = s.client.doWithChecks(ctx, req, &createdNetwork, buildEnvironmentRequestRunState(environmentID))
 	if err != nil {
 		return nil, err
 	}
@@ -184,7 +184,7 @@ func (s *NetworksServiceClient) Update(ctx context.Context, environmentID string
 	}
 
 	var updatedNetwork Network
-	_, err = s.client.do(ctx, req, &updatedNetwork)
+	_, err = s.client.doWithChecks(ctx, req, &updatedNetwork, buildEnvironmentRequestRunState(environmentID))
 	if err != nil {
 		return nil, err
 	}

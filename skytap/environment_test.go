@@ -366,10 +366,12 @@ func TestCreateEnvironment(t *testing.T) {
 	skytap, hs, handler := createClient(t)
 	defer hs.Close()
 
-	var createPhase = true
+	first := true
+	second := true
+	third := true
 
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
-		if createPhase {
+		if first {
 			if req.URL.Path != "/configurations" {
 				t.Error("Bad path")
 			}
@@ -380,8 +382,15 @@ func TestCreateEnvironment(t *testing.T) {
 			assert.Nil(t, err)
 			assert.JSONEq(t, fmt.Sprintf(`{"template_id":%q, "project_id":%d, "description":"test environment"}`, "12345", 12345), string(body))
 			io.WriteString(rw, `{"id": "456"}`)
-			createPhase = false
-		} else {
+			first = false
+		} else if second {
+			assert.Equal(t, "/v2/configurations/456", req.URL.Path, "Bad path")
+			assert.Equal(t, http.MethodGet, req.Method, "Bad method")
+
+			_, err := io.WriteString(rw, exampleEnvironment)
+			assert.NoError(t, err)
+			second = false
+		} else if third {
 			if req.URL.Path != "/v2/configurations/456" {
 				t.Error("Bad path")
 			}
@@ -393,6 +402,7 @@ func TestCreateEnvironment(t *testing.T) {
 			assert.JSONEq(t, `{"description": "test environment", "runstate":"running"}`, string(body))
 
 			io.WriteString(rw, exampleEnvironment)
+			third = false
 		}
 	}
 
@@ -411,6 +421,10 @@ func TestCreateEnvironment(t *testing.T) {
 	err = json.Unmarshal([]byte(exampleEnvironment), &environmentExpected)
 
 	assert.Equal(t, environmentExpected, *environment)
+
+	assert.False(t, first)
+	assert.False(t, second)
+	assert.False(t, third)
 }
 
 func TestReadEnvironment(t *testing.T) {
@@ -448,18 +462,31 @@ func TestUpdateEnvironment(t *testing.T) {
 	bytes, err := json.Marshal(&environment)
 	assert.Nil(t, err)
 
-	*handler = func(rw http.ResponseWriter, req *http.Request) {
-		if req.URL.Path != "/v2/configurations/456" {
-			t.Error("Bad path")
-		}
-		if req.Method != "PUT" {
-			t.Error("Bad method")
-		}
-		body, err := ioutil.ReadAll(req.Body)
-		assert.Nil(t, err)
-		assert.JSONEq(t, `{"description": "updated environment"}`, string(body))
+	first := true
+	second := true
 
-		io.WriteString(rw, string(bytes))
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		if first {
+			assert.Equal(t, "/v2/configurations/456", req.URL.Path, "Bad path")
+			assert.Equal(t, http.MethodGet, req.Method, "Bad method")
+
+			_, err := io.WriteString(rw, exampleEnvironment)
+			assert.NoError(t, err)
+			first = false
+		} else if second {
+			if req.URL.Path != "/v2/configurations/456" {
+				t.Error("Bad path")
+			}
+			if req.Method != "PUT" {
+				t.Error("Bad method")
+			}
+			body, err := ioutil.ReadAll(req.Body)
+			assert.Nil(t, err)
+			assert.JSONEq(t, `{"description": "updated environment"}`, string(body))
+
+			io.WriteString(rw, string(bytes))
+			second = false
+		}
 	}
 
 	opts := &UpdateEnvironmentRequest{
@@ -470,6 +497,9 @@ func TestUpdateEnvironment(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, environment, *environmentUpdate)
+
+	assert.False(t, first)
+	assert.False(t, second)
 }
 
 func TestDeleteEnvironment(t *testing.T) {

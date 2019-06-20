@@ -39,22 +39,37 @@ const examplePublishedServiceListResponse = `[
 ]`
 
 func TestCreateService(t *testing.T) {
+	response := fmt.Sprintf(string(readTestFile(t, "VMResponse.json")), 456)
+
 	port := 8080
 	exampleService := fmt.Sprintf(examplePublishedServiceResponse, port, port)
 
 	skytap, hs, handler := createClient(t)
 	defer hs.Close()
 
+	first := true
+	second := true
+
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
-		assert.Equal(t, "/v2/configurations/123/vms/456/interfaces/789/services", req.URL.Path, "Bad path")
-		assert.Equal(t, "POST", req.Method, "Bad method")
+		if first {
+			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
+			assert.Equal(t, http.MethodGet, req.Method, "Bad method")
 
-		body, err := ioutil.ReadAll(req.Body)
-		assert.Nil(t, err, "Bad request body")
-		assert.JSONEq(t, fmt.Sprintf(examplePublishedServiceRequest, port), string(body), "Bad request body")
+			_, err := io.WriteString(rw, response)
+			assert.NoError(t, err)
+			first = false
+		} else {
+			assert.Equal(t, "/v2/configurations/123/vms/456/interfaces/789/services", req.URL.Path, "Bad path")
+			assert.Equal(t, "POST", req.Method, "Bad method")
 
-		_, err = io.WriteString(rw, exampleService)
-		assert.NoError(t, err)
+			body, err := ioutil.ReadAll(req.Body)
+			assert.Nil(t, err, "Bad request body")
+			assert.JSONEq(t, fmt.Sprintf(examplePublishedServiceRequest, port), string(body), "Bad request body")
+
+			_, err = io.WriteString(rw, exampleService)
+			assert.NoError(t, err)
+			second = false
+		}
 	}
 	internalPort := &CreatePublishedServiceRequest{
 		InternalPort: intToPtr(port),
@@ -66,6 +81,9 @@ func TestCreateService(t *testing.T) {
 	var serviceExpected PublishedService
 	err = json.Unmarshal([]byte(exampleService), &serviceExpected)
 	assert.Equal(t, serviceExpected, *service, "Bad publishedService")
+
+	assert.False(t, first)
+	assert.False(t, second)
 }
 
 func TestReadService(t *testing.T) {
@@ -91,6 +109,8 @@ func TestReadService(t *testing.T) {
 }
 
 func TestUpdateService(t *testing.T) {
+	response := fmt.Sprintf(string(readTestFile(t, "VMResponse.json")), 456)
+
 	port := 8081
 	exampleService := fmt.Sprintf(examplePublishedServiceResponse, port, port)
 
@@ -101,13 +121,23 @@ func TestUpdateService(t *testing.T) {
 	err := json.Unmarshal([]byte(exampleService), &service)
 	assert.NoError(t, err)
 
-	var deletePhase = true
+	first := true
+	second := true
+	third := true
 
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
-		if deletePhase {
+		if first {
 			assert.Equal(t, "/v2/configurations/123/vms/456/interfaces/789/services/abc", req.URL.Path, "Bad path")
 			assert.Equal(t, "DELETE", req.Method, "Bad method")
-			deletePhase = false
+
+			first = false
+		} else if second {
+			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
+			assert.Equal(t, http.MethodGet, req.Method, "Bad method")
+
+			_, err := io.WriteString(rw, response)
+			assert.NoError(t, err)
+			second = false
 		} else {
 			assert.Equal(t, "/v2/configurations/123/vms/456/interfaces/789/services", req.URL.Path, "Bad path")
 			assert.Equal(t, "POST", req.Method, "Bad method")
@@ -118,6 +148,7 @@ func TestUpdateService(t *testing.T) {
 
 			_, err = io.WriteString(rw, exampleService)
 			assert.NoError(t, err)
+			third = false
 		}
 	}
 
@@ -130,6 +161,10 @@ func TestUpdateService(t *testing.T) {
 	assert.Nil(t, err, "Bad API method")
 
 	assert.Equal(t, service, *serviceUpdate, "Bad publishedService")
+
+	assert.False(t, first)
+	assert.False(t, second)
+	assert.False(t, third)
 }
 
 func TestDeleteService(t *testing.T) {

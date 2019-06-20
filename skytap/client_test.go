@@ -2,6 +2,8 @@ package skytap
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -27,10 +29,10 @@ func createClient(t *testing.T) (*Client, *httptest.Server, *func(rw http.Respon
 	settings := NewDefaultSettings(WithBaseURL(hs.URL), WithCredentialsProvider(NewAPITokenCredentials(user, token)))
 
 	skytap, err := NewClient(settings)
+	assert.Nil(t, err)
 	skytap.retryCount = testingRetryCount
 	skytap.retryAfter = testingRetryAfter
 
-	assert.Nil(t, err)
 	assert.NotNil(t, skytap)
 	return skytap, hs, &handler
 }
@@ -179,7 +181,8 @@ func TestRetryWith50xResolves(t *testing.T) {
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
 		rw.Header().Add("Retry-After", "1")
 		if requestCounter == 3 {
-			io.WriteString(rw, `{"id": "12345", "name": "test-project", "summary": "test project"}`)
+			_, err := io.WriteString(rw, `{"id": "12345", "name": "test-project", "summary": "test project"}`)
+			assert.NoError(t, err)
 		} else {
 			rw.WriteHeader(http.StatusInternalServerError)
 		}
@@ -189,4 +192,117 @@ func TestRetryWith50xResolves(t *testing.T) {
 	_, err := skytap.Projects.Get(context.Background(), 12345)
 
 	assert.Nil(t, err)
+}
+
+func TestPreRequestPutPostRunstateNotExpecting(t *testing.T) {
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+	responseProcessed := false
+
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		responseProcessed = true
+		assert.Equal(t, http.MethodGet, req.Method, "Unexpected method")
+		assert.Equal(t, "/v2/projects/12345", req.URL.Path, "Unexpected path")
+	}
+
+	_, err := skytap.Projects.Get(context.Background(), 12345)
+	assert.NoError(t, err)
+	assert.True(t, responseProcessed)
+}
+
+func TestPreRequestPutPostRunstateNotExpecting2(t *testing.T) {
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+	responseProcessed := false
+
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		if !responseProcessed {
+			responseProcessed = true
+			assert.Equal(t, http.MethodPost, req.Method, "Unexpected method")
+			assert.Equal(t, "/projects", req.URL.Path, "Unexpected path")
+			_, err := io.WriteString(rw, `{"id": "12345", "name": "test-project"}`)
+			assert.NoError(t, err)
+		}
+	}
+
+	project := Project{}
+	_, err := skytap.Projects.Create(context.Background(), &project)
+	assert.NoError(t, err)
+	assert.True(t, responseProcessed)
+}
+
+func TestPreRequestPutPostRunstate(t *testing.T) {
+	response := fmt.Sprintf(string(readTestFile(t, "VMResponse.json")), 456)
+
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+	responseProcessed := false
+
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		if !responseProcessed {
+			responseProcessed = true
+			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
+			assert.Equal(t, http.MethodGet, req.Method, "Bad method")
+
+			_, err := io.WriteString(rw, response)
+			assert.NoError(t, err)
+		}
+	}
+
+	nicType := &CreateInterfaceRequest{
+		NICType: nicTypeToPtr(NICTypeE1000),
+	}
+
+	_, err := skytap.Interfaces.Create(context.Background(), "123", "456", nicType)
+	assert.Nil(t, err)
+	assert.True(t, responseProcessed)
+}
+
+func TestPreRequestPutPostRunstate2(t *testing.T) {
+	response := fmt.Sprintf(string(readTestFile(t, "VMResponse.json")), 456)
+	var vm VM
+	err := json.Unmarshal([]byte(response), &vm)
+	assert.NoError(t, err)
+	*vm.Runstate = VMRunstateBusy
+	responseBusy, err := json.Marshal(&vm)
+
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+
+	first := true
+	second := true
+	third := true
+
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		if first {
+			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
+			assert.Equal(t, http.MethodGet, req.Method, "Bad method")
+
+			_, err := io.WriteString(rw, string(responseBusy))
+			assert.NoError(t, err)
+			first = false
+		} else if second {
+			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
+			assert.Equal(t, http.MethodGet, req.Method, "Bad method")
+
+			_, err := io.WriteString(rw, response)
+			assert.NoError(t, err)
+			second = false
+		} else if third {
+			assert.Equal(t, "/v2/configurations/123/vms/456/interfaces", req.URL.Path, "Bad path")
+			assert.Equal(t, "POST", req.Method, "Bad method")
+			third = false
+		}
+	}
+
+	nicType := &CreateInterfaceRequest{
+		NICType: nicTypeToPtr(NICTypeE1000),
+	}
+
+	_, err = skytap.Interfaces.Create(context.Background(), "123", "456", nicType)
+	assert.Nil(t, err)
+
+	assert.False(t, first)
+	assert.False(t, second)
+	assert.False(t, third)
 }

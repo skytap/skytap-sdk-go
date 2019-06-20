@@ -2,6 +2,7 @@ package skytap
 
 import (
 	"context"
+	"errors"
 	"fmt"
 )
 
@@ -104,6 +105,9 @@ func (s *ProjectsServiceClient) Create(ctx context.Context, project *Project) (*
 
 	createdProject.Summary = project.Summary
 
+	if createdProject.ID == nil {
+		return nil, errors.New("missing project ID")
+	}
 	// update project after creation to establish the resource information.
 	updatedProject, err := s.Update(ctx, *createdProject.ID, &createdProject)
 	if err != nil {

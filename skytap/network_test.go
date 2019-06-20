@@ -44,15 +44,28 @@ func TestCreateNetwork(t *testing.T) {
 	skytap, hs, handler := createClient(t)
 	defer hs.Close()
 
+	first := true
+	second := true
+
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
-		assert.Equal(t, "/v2/configurations/123/networks", req.URL.Path, "Bad path")
-		assert.Equal(t, "POST", req.Method, "Bad method")
+		if first {
+			assert.Equal(t, "/v2/configurations/123", req.URL.Path, "Bad path")
+			assert.Equal(t, http.MethodGet, req.Method, "Bad method")
 
-		body, err := ioutil.ReadAll(req.Body)
-		assert.Nil(t, err, "Bad request body")
-		assert.JSONEq(t, exampleNetworkRequest, string(body), "Bad request body")
+			_, err := io.WriteString(rw, exampleEnvironment)
+			assert.NoError(t, err)
+			first = false
+		} else if second {
+			assert.Equal(t, "/v2/configurations/123/networks", req.URL.Path, "Bad path")
+			assert.Equal(t, "POST", req.Method, "Bad method")
 
-		io.WriteString(rw, exampleNetwork)
+			body, err := ioutil.ReadAll(req.Body)
+			assert.Nil(t, err, "Bad request body")
+			assert.JSONEq(t, exampleNetworkRequest, string(body), "Bad request body")
+
+			io.WriteString(rw, exampleNetwork)
+			second = false
+		}
 	}
 	opts := &CreateNetworkRequest{
 		Name:        strToPtr("test network"),
@@ -69,6 +82,9 @@ func TestCreateNetwork(t *testing.T) {
 	var networkExpected Network
 	err = json.Unmarshal([]byte(exampleNetwork), &networkExpected)
 	assert.Equal(t, networkExpected, *network, "Bad network")
+
+	assert.False(t, first)
+	assert.False(t, second)
 }
 
 func TestReadNetwork(t *testing.T) {
@@ -105,15 +121,28 @@ func TestUpdateNetwork(t *testing.T) {
 	bytes, err := json.Marshal(&network)
 	assert.Nil(t, err, "Bad network")
 
+	first := true
+	second := true
+
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
-		assert.Equal(t, "/v2/configurations/123/networks/456", req.URL.Path, "Bad path")
-		assert.Equal(t, "PUT", req.Method, "Bad method")
+		if first {
+			assert.Equal(t, "/v2/configurations/123", req.URL.Path, "Bad path")
+			assert.Equal(t, http.MethodGet, req.Method, "Bad method")
 
-		body, err := ioutil.ReadAll(req.Body)
-		assert.Nil(t, err, "Bad request body")
-		assert.JSONEq(t, `{"name": "updated network"}`, string(body), "Bad request body")
+			_, err := io.WriteString(rw, exampleEnvironment)
+			assert.NoError(t, err)
+			first = false
+		} else if second {
+			assert.Equal(t, "/v2/configurations/123/networks/456", req.URL.Path, "Bad path")
+			assert.Equal(t, "PUT", req.Method, "Bad method")
 
-		io.WriteString(rw, string(bytes))
+			body, err := ioutil.ReadAll(req.Body)
+			assert.Nil(t, err, "Bad request body")
+			assert.JSONEq(t, `{"name": "updated network"}`, string(body), "Bad request body")
+
+			io.WriteString(rw, string(bytes))
+			second = false
+		}
 	}
 
 	opts := &UpdateNetworkRequest{
@@ -123,6 +152,9 @@ func TestUpdateNetwork(t *testing.T) {
 	assert.Nil(t, err, "Bad API method")
 
 	assert.Equal(t, network, *networkUpdate, "Bad network")
+
+	assert.False(t, first)
+	assert.False(t, second)
 }
 
 func TestDeleteNetwork(t *testing.T) {

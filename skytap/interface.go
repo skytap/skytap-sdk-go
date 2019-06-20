@@ -1,9 +1,6 @@
 package skytap
 
-import (
-	"context"
-	"log"
-)
+import "context"
 
 // Default URL paths
 const (
@@ -185,19 +182,13 @@ func (s *InterfacesServiceClient) Create(ctx context.Context, environmentID stri
 	var builder interfacePathBuilderImpl
 	path := builder.Environment(environmentID).VM(vmID).Build()
 
-	// wait until not busy
-	err := s.waitForRunstate(&ctx, environmentID, id, VMRunstateStopped)
-	if err != nil {
-		return nil, err
-	}
-
 	req, err := s.client.newRequest(ctx, "POST", path, nicType)
 	if err != nil {
 		return nil, err
 	}
 
 	var createdInterface Interface
-	_, err = s.client.do(ctx, req, &createdInterface)
+	_, err = s.client.doWithChecks(ctx, req, &createdInterface, buildVMRequestRunStateStopped(environmentID, vmID))
 	if err != nil {
 		return nil, err
 	}
@@ -216,7 +207,7 @@ func (s *InterfacesServiceClient) Attach(ctx context.Context, environmentID stri
 	}
 
 	var updatedInterface Interface
-	_, err = s.client.do(ctx, req, &updatedInterface)
+	_, err = s.client.doWithChecks(ctx, req, &updatedInterface, buildVMRequestRunState(environmentID, vmID))
 	if err != nil {
 		return nil, err
 	}
@@ -229,12 +220,16 @@ func (s *InterfacesServiceClient) Update(ctx context.Context, environmentID stri
 	var builder interfacePathBuilderImpl
 	path := builder.Environment(environmentID).VM(vmID).Interface(id).Build()
 
-	updatedInterface := Interface{}
-	err := s.client.retryAfter422(ctx, path, &updatedInterface, opts)
+	req, err := s.client.newRequest(ctx, "PUT", path, opts)
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("[INFO] SDK Interface updated\n")
+
+	var updatedInterface Interface
+	_, err = s.client.doWithChecks(ctx, req, &updatedInterface, buildVMRequestRunStateStopped(environmentID, vmID))
+	if err != nil {
+		return nil, err
+	}
 
 	return &updatedInterface, nil
 }

@@ -272,13 +272,13 @@ func (s *VMsServiceClient) Create(ctx context.Context, environmentID string, opt
 		TemplateID: opts.TemplateID,
 		VMID:       []string{opts.VMID},
 	}
+	req, err := s.client.newRequest(ctx, "PUT", path, apiOpts)
 
-	environment := Environment{}
-	err := s.client.retryAfter422(ctx, path, &environment, apiOpts)
+	var environment Environment
+	_, err = s.client.doWithChecks(ctx, req, &environment, buildEnvironmentRequestRunState(environmentID))
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("[INFO] SDK VM created\n")
 
 	// The create method returns an environment. The ID of the VM is not specified.
 	// It is necessary to retrieve the most recently created vm.
@@ -371,7 +371,7 @@ func (s *VMsServiceClient) updateHardware(ctx context.Context, environmentID str
 	}
 
 	var updatedVM *VM
-	_, err = s.client.do(ctx, requestCreate, updatedVM)
+	_, err = s.client.doWithChecks(ctx, requestCreate, updatedVM, buildVMRequestRunStateStopped(environmentID, id))
 	if err != nil {
 		return nil, err
 	}
@@ -440,7 +440,7 @@ func (s *VMsServiceClient) changeRunstate(ctx context.Context, environmentID str
 	}
 
 	var updatedVM VM
-	_, err = s.client.do(ctx, requestCreate, &updatedVM)
+	_, err = s.client.doWithChecks(ctx, requestCreate, &updatedVM, buildVMRequestRunState(environmentID, id))
 	if err != nil {
 		return nil, err
 	}
