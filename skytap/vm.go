@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net/http"
 	"sort"
 	"time"
 )
@@ -274,33 +273,16 @@ func (s *VMsServiceClient) Create(ctx context.Context, environmentID string, opt
 		VMID:       []string{opts.VMID},
 	}
 
-	req, err := s.client.newRequest(ctx, "PUT", path, apiOpts)
+	environment := Environment{}
+	err := s.client.retryAfter422(ctx, path, &environment, apiOpts)
 	if err != nil {
 		return nil, err
 	}
-
-	// Retry to work around 422 errors on creating a vm.
-	var createdEnvironment Environment
-	var makeRequest = true
-	for i := 0; i < s.client.retryCount+1 && makeRequest; i++ {
-		_, err = s.client.do(ctx, req, &createdEnvironment)
-		if err == nil {
-			log.Printf("[INFO] VM created\n")
-			makeRequest = false
-		} else {
-			errorResponse := err.(*ErrorResponse)
-			if http.StatusUnprocessableEntity == errorResponse.Response.StatusCode {
-				log.Printf("[INFO] 422 error received: waiting for %d second(s)\n", s.client.retryAfter)
-				time.Sleep(time.Duration(s.client.retryAfter) * time.Second)
-			} else {
-				return nil, err
-			}
-		}
-	}
+	log.Printf("[INFO] SDK VM created\n")
 
 	// The create method returns an environment. The ID of the VM is not specified.
 	// It is necessary to retrieve the most recently created vm.
-	createdVM, err := mostRecentVM(&createdEnvironment)
+	createdVM, err := mostRecentVM(&environment)
 	if err != nil {
 		return nil, err
 	}
@@ -502,7 +484,7 @@ func matchUpNewDisks(vm *VM, identifications []DiskIdentification, ignored map[s
 
 // wait for runstate
 func (s *VMsServiceClient) waitForRunstate(ctx *context.Context, environmentID string, id string, runstate VMRunstate) error {
-	log.Printf("[INFO] waiting for runstate (%s)\n", string(runstate))
+	log.Printf("[INFO] SDK waiting for runstate (%s)\n", string(runstate))
 	var makeRequest = true
 	var err error
 	for i := 0; i < s.client.retryCount+1 && makeRequest; i++ {
@@ -515,10 +497,10 @@ func (s *VMsServiceClient) waitForRunstate(ctx *context.Context, environmentID s
 
 		if makeRequest {
 			seconds := s.client.retryAfter
-			log.Printf("[INFO] waiting for %d second(s)\n", seconds)
+			log.Printf("[INFO] SDK waiting for %d second(s)\n", seconds)
 			time.Sleep(time.Duration(seconds) * time.Second)
 		} else {
-			log.Printf("[INFO] runstate is now (%s)\n", string(runstate))
+			log.Printf("[INFO] SDK runstate is now (%s)\n", string(runstate))
 		}
 	}
 	return err

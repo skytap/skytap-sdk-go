@@ -251,3 +251,46 @@ func TestListInterfaces(t *testing.T) {
 	}
 	assert.True(t, found, "Interface not found")
 }
+
+func TestUpdateInterface422(t *testing.T) {
+	exampleInterface := fmt.Sprintf(exampleAttachInterfaceResponse)
+
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+
+	var networkInterface Interface
+	err := json.Unmarshal([]byte(exampleInterface), &networkInterface)
+	assert.NoError(t, err)
+
+	networkInterface.Hostname = strToPtr("updated-hostname")
+
+	response, err := json.Marshal(&networkInterface)
+	assert.Nil(t, err, "Bad interface")
+	requestCounter := 0
+
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		assert.Equal(t, "/v2/configurations/123/vms/456/interfaces/789", req.URL.Path, "Bad path")
+		assert.Equal(t, "PUT", req.Method, "Bad method")
+
+		body, err := ioutil.ReadAll(req.Body)
+		assert.Nil(t, err, "Bad request body")
+		assert.JSONEq(t, exampleUpdateInterfaceRequest, string(body), "Bad request body")
+
+		if requestCounter == 0 {
+			rw.WriteHeader(http.StatusUnprocessableEntity)
+		} else {
+			_, err = io.WriteString(rw, string(response))
+			assert.NoError(t, err)
+		}
+		requestCounter++
+	}
+	opts := &UpdateInterfaceRequest{
+		Hostname: strToPtr(*networkInterface.Hostname),
+		IP:       strToPtr("10.0.0.1"),
+	}
+	interfaceUpdate, err := skytap.Interfaces.Update(context.Background(), "123", "456", "789", opts)
+	assert.Nil(t, err, "Bad API method")
+
+	assert.Equal(t, networkInterface, *interfaceUpdate, "Bad interface")
+	assert.Equal(t, 2, requestCounter)
+}

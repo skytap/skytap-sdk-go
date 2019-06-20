@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	"io"
 	"io/ioutil"
 	"log"
@@ -194,6 +195,7 @@ func (c *Client) do(ctx context.Context, req *http.Request, v interface{}) (*htt
 	var makeRequest = true
 
 	for i := 0; i < c.retryCount+1 && makeRequest; i++ {
+		log.Printf("[DEBUG] SDK request (%#v)\n", spew.Sdump(req))
 		resp, err = c.hc.Do(req.WithContext(ctx))
 
 		if err != nil {
@@ -210,7 +212,7 @@ func (c *Client) do(ctx context.Context, req *http.Request, v interface{}) (*htt
 			makeRequest = false
 		} else if err.(*ErrorResponse).RequiresRetry {
 			seconds := *err.(*ErrorResponse).RetryAfter
-			log.Printf("[INFO] retrying after %d second(s)\n", seconds)
+			log.Printf("[INFO] SDK retrying after %d second(s)\n", seconds)
 			time.Sleep(time.Duration(seconds) * time.Second)
 		} else {
 			makeRequest = false
@@ -305,4 +307,30 @@ func (c *Client) checkResponse(r *http.Response) error {
 	}
 
 	return errorResponse
+}
+
+func (c *Client) retryAfter422(ctx context.Context, path string, v interface{}, opts interface{}) error {
+	var makeRequest = true
+	for i := 0; i < c.retryCount+1 && makeRequest; i++ {
+		req, err := c.newRequest(ctx, "PUT", path, opts)
+		if err != nil {
+			return err
+		}
+		_, err = c.do(ctx, req, v)
+		if err == nil {
+			log.Printf("[DEBUG] SDK request successful\n")
+			makeRequest = false
+		} else if errorResponse, ok := err.(*ErrorResponse); ok {
+			if http.StatusUnprocessableEntity == errorResponse.Response.StatusCode {
+				log.Printf("[INFO] SDK 422 error received: waiting for %d second(s)\n", c.retryAfter)
+				log.Printf("[DEBUG] SDK 422 error request (%v)\n", req)
+				time.Sleep(time.Duration(c.retryAfter) * time.Second)
+			} else {
+				return err
+			}
+		} else {
+			return err
+		}
+	}
+	return nil
 }

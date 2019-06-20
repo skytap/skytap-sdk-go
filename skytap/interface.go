@@ -1,6 +1,9 @@
 package skytap
 
-import "context"
+import (
+	"context"
+	"log"
+)
 
 // Default URL paths
 const (
@@ -182,6 +185,12 @@ func (s *InterfacesServiceClient) Create(ctx context.Context, environmentID stri
 	var builder interfacePathBuilderImpl
 	path := builder.Environment(environmentID).VM(vmID).Build()
 
+	// wait until not busy
+	err := s.waitForRunstate(&ctx, environmentID, id, VMRunstateStopped)
+	if err != nil {
+		return nil, err
+	}
+
 	req, err := s.client.newRequest(ctx, "POST", path, nicType)
 	if err != nil {
 		return nil, err
@@ -220,16 +229,12 @@ func (s *InterfacesServiceClient) Update(ctx context.Context, environmentID stri
 	var builder interfacePathBuilderImpl
 	path := builder.Environment(environmentID).VM(vmID).Interface(id).Build()
 
-	req, err := s.client.newRequest(ctx, "PUT", path, opts)
+	updatedInterface := Interface{}
+	err := s.client.retryAfter422(ctx, path, &updatedInterface, opts)
 	if err != nil {
 		return nil, err
 	}
-
-	var updatedInterface Interface
-	_, err = s.client.do(ctx, req, &updatedInterface)
-	if err != nil {
-		return nil, err
-	}
+	log.Printf("[INFO] SDK Interface updated\n")
 
 	return &updatedInterface, nil
 }
