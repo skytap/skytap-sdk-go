@@ -1,0 +1,16 @@
+{
+  "id": "nic-%d",
+  "ip": null,
+  "hostname": null,
+  "mac": "00:50:56:07:40:3F",
+  "services_count": 0,
+  "services": [],
+  "public_ips_count": 0,
+  "public_ips": [],
+  "vm_id": "%d",
+  "vm_name": "Windows Server 2016 Standard",
+  "status": "Powered off",
+  "nic_type": "e1000",
+  "secondary_ips": [],
+  "public_ip_attachments": []
+}

@@ -2,7 +2,7 @@
   "id": "%d",
   "url": "https://cloud.skytap.com/configurations/%d",
   "name": "base",
-  "error": "",
+  "error": false,
   "runstate": "busy",
   "rate_limited": false,
   "description": "used for basic understanding",

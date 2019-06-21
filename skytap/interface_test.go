@@ -6,133 +6,48 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-const exampleCreateInterfaceRequest = `{
-    "nic_type": "e1000"
-}`
-
-const exampleAttachInterfaceRequest = `{
-    "network_id": "23917287"
-}`
-
-const exampleUpdateInterfaceRequest = `{
-    "ip": "10.0.0.1",
-    "hostname": "updated-hostname"
-}`
-
-const exampleCreateInterfaceResponse = `{
-    "id": "nic-%d",
-    "ip": null,
-    "hostname": null,
-    "mac": "00:50:56:07:40:3F",
-    "services_count": 0,
-    "services": [],
-    "public_ips_count": 0,
-    "public_ips": [],
-    "vm_id": "%d",
-    "vm_name": "Windows Server 2016 Standard",
-    "status": "Powered off",
-    "nic_type": "e1000",
-    "secondary_ips": [],
-    "public_ip_attachments": []
-}`
-
-const exampleAttachInterfaceResponse = `{
-    "id": "nic-20250403-38374059-4",
-    "ip": "192.168.0.5",
-    "hostname": "host-3",
-    "mac": "00:50:56:05:3F:84",
-    "services_count": 0,
-    "services": [],
-    "public_ips_count": 0,
-    "public_ips": [],
-    "vm_id": "37533321",
-    "vm_name": "CentOS 6 Desktop x64",
-    "status": "Powered off",
-    "network_id": "23922457",
-    "network_name": "tftest-network-1",
-    "network_url": "https://cloud.skytap.com/v2/configurations/40071754/networks/23922457",
-    "network_type": "automatic",
-    "network_subnet": "192.168.0.0/16",
-    "nic_type": "vmxnet3",
-    "secondary_ips": [],
-    "public_ip_attachments": []
-}`
-
-const exampleInterfaceListResponse = `[
-    {
-        "id": "nic-20246343-38367563-0",
-        "ip": "192.168.0.1",
-        "hostname": "wins2016s",
-        "mac": "00:50:56:11:7D:D9",
-        "services_count": 0,
-        "services": [],
-        "public_ips_count": 0,
-        "public_ips": [],
-        "vm_id": "37527239",
-        "vm_name": "Windows Server 2016 Standard",
-        "status": "Running",
-        "network_id": "23917287",
-        "network_name": "tftest-network-1",
-        "network_url": "https://cloud.skytap.com/v2/configurations/40064014/networks/23917287",
-        "network_type": "automatic",
-        "network_subnet": "192.168.0.0/16",
-        "nic_type": "vmxnet3",
-        "secondary_ips": [],
-        "public_ip_attachments": []
-    },
-    {
-        "id": "nic-20246343-38367563-5",
-        "ip": null,
-        "hostname": null,
-        "mac": "00:50:56:07:40:3F",
-        "services_count": 0,
-        "services": [],
-        "public_ips_count": 0,
-        "public_ips": [],
-        "vm_id": "37527239",
-        "vm_name": "Windows Server 2016 Standard",
-        "status": "Running",
-        "nic_type": "e1000",
-        "secondary_ips": [],
-        "public_ip_attachments": []
-    }
-]`
-
 func TestCreateInterface(t *testing.T) {
 	response := fmt.Sprintf(string(readTestFile(t, "VMResponse.json")), 456)
-	exampleInterface := fmt.Sprintf(exampleCreateInterfaceResponse, 456, 123)
+	exampleInterface := fmt.Sprintf(string(readTestFile(t, "exampleCreateInterfaceResponse.json")), 456, 123)
 
 	skytap, hs, handler := createClient(t)
 	defer hs.Close()
 
-	first := true
-	second := true
+	requestCounter := 0
 
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
-		if first {
+		log.Printf("Request: (%d)\n", requestCounter)
+		if requestCounter == 0 {
 			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
 			assert.Equal(t, http.MethodGet, req.Method, "Bad method")
 
 			_, err := io.WriteString(rw, string(response))
 			assert.NoError(t, err)
-			first = false
-		} else {
+		} else if requestCounter == 1 {
 			assert.Equal(t, "/v2/configurations/123/vms/456/interfaces", req.URL.Path, "Bad path")
 			assert.Equal(t, "POST", req.Method, "Bad method")
 
 			body, err := ioutil.ReadAll(req.Body)
 			assert.Nil(t, err, "Bad request body")
-			assert.JSONEq(t, exampleCreateInterfaceRequest, string(body), "Bad request body")
+			assert.JSONEq(t, string(readTestFile(t, "exampleCreateInterfaceRequest.json")), string(body), "Bad request body")
 
-			io.WriteString(rw, exampleInterface)
-			second = false
+			_, err = io.WriteString(rw, exampleInterface)
+			assert.NoError(t, err)
+		} else if requestCounter == 2 {
+			assert.Equal(t, "/v2/configurations/123/vms/456/interfaces/nic-456", req.URL.Path, "Bad path")
+			assert.Equal(t, http.MethodGet, req.Method, "Bad method")
+
+			_, err := io.WriteString(rw, exampleInterface)
+			assert.NoError(t, err)
 		}
+		requestCounter++
 	}
 	nicType := &CreateInterfaceRequest{
 		NICType: nicTypeToPtr(NICTypeE1000),
@@ -145,39 +60,44 @@ func TestCreateInterface(t *testing.T) {
 	err = json.Unmarshal([]byte(exampleInterface), &interfaceExpected)
 	assert.Equal(t, interfaceExpected, *networkInterface, "Bad interface")
 
-	assert.False(t, first)
-	assert.False(t, second)
+	assert.Equal(t, 3, requestCounter)
 }
 
 func TestAttachInterface(t *testing.T) {
 	response := fmt.Sprintf(string(readTestFile(t, "VMResponse.json")), 456)
-	exampleInterface := fmt.Sprintf(exampleAttachInterfaceResponse)
+	exampleInterface := fmt.Sprintf(string(readTestFile(t, "exampleAttachInterfaceResponse.json")))
 
 	skytap, hs, handler := createClient(t)
 	defer hs.Close()
 
-	first := true
-	second := true
+	requestCounter := 0
 
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
-		if first {
+		log.Printf("Request: (%d)\n", requestCounter)
+		if requestCounter == 0 {
 			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
 			assert.Equal(t, http.MethodGet, req.Method, "Bad method")
 
 			_, err := io.WriteString(rw, string(response))
 			assert.NoError(t, err)
-			first = false
-		} else {
+		} else if requestCounter == 1 {
 			assert.Equal(t, "/v2/configurations/123/vms/456/interfaces/789", req.URL.Path, "Bad path")
 			assert.Equal(t, "PUT", req.Method, "Bad method")
 
 			body, err := ioutil.ReadAll(req.Body)
 			assert.Nil(t, err, "Bad request body")
-			assert.JSONEq(t, exampleAttachInterfaceRequest, string(body), "Bad request body")
+			assert.JSONEq(t, string(readTestFile(t, "exampleAttachInterfaceRequest.json")), string(body), "Bad request body")
 
-			io.WriteString(rw, exampleInterface)
-			second = false
+			_, err = io.WriteString(rw, exampleInterface)
+			assert.NoError(t, err)
+		} else if requestCounter == 2 {
+			assert.Equal(t, "/v2/configurations/123/vms/456/interfaces/nic-20250403-38374059-4", req.URL.Path, "Bad path")
+			assert.Equal(t, http.MethodGet, req.Method, "Bad method")
+
+			_, err := io.WriteString(rw, exampleInterface)
+			assert.NoError(t, err)
 		}
+		requestCounter++
 	}
 	networkID := &AttachInterfaceRequest{
 		NetworkID: strToPtr("23917287"),
@@ -190,12 +110,11 @@ func TestAttachInterface(t *testing.T) {
 	err = json.Unmarshal([]byte(exampleInterface), &interfaceExpected)
 	assert.Equal(t, interfaceExpected, *networkInterface, "Bad interface")
 
-	assert.False(t, first)
-	assert.False(t, second)
+	assert.Equal(t, 3, requestCounter)
 }
 
 func TestReadInterface(t *testing.T) {
-	exampleInterface := fmt.Sprintf(exampleCreateInterfaceResponse, 456, 123)
+	exampleInterface := fmt.Sprintf(string(readTestFile(t, "exampleCreateInterfaceResponse.json")), 456, 123)
 
 	skytap, hs, handler := createClient(t)
 	defer hs.Close()
@@ -204,7 +123,8 @@ func TestReadInterface(t *testing.T) {
 		assert.Equal(t, "/v2/configurations/123/vms/456/interfaces/789", req.URL.Path, "Bad path")
 		assert.Equal(t, "GET", req.Method, "Bad method")
 
-		io.WriteString(rw, exampleInterface)
+		_, err := io.WriteString(rw, exampleInterface)
+		assert.NoError(t, err)
 	}
 
 	networkInterface, err := skytap.Interfaces.Get(context.Background(), "123", "456", "789")
@@ -217,41 +137,55 @@ func TestReadInterface(t *testing.T) {
 
 func TestUpdateInterface(t *testing.T) {
 	response := fmt.Sprintf(string(readTestFile(t, "VMResponse.json")), 456)
-	exampleInterface := fmt.Sprintf(exampleAttachInterfaceResponse)
+	exampleInterface := fmt.Sprintf(string(readTestFile(t, "exampleUpdateInterfaceResponse.json")))
 
 	skytap, hs, handler := createClient(t)
 	defer hs.Close()
 
-	var networkInterface Interface
-	json.Unmarshal([]byte(exampleInterface), &networkInterface)
-	networkInterface.Hostname = strToPtr("updated-hostname")
-
-	bytes, err := json.Marshal(&networkInterface)
-	assert.Nil(t, err, "Bad interface")
-
-	first := true
-	second := true
+	requestCounter := 0
 
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
-		if first {
+		log.Printf("Request: (%d)\n", requestCounter)
+		if requestCounter == 0 {
 			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
 			assert.Equal(t, http.MethodGet, req.Method, "Bad method")
 
 			_, err := io.WriteString(rw, string(response))
 			assert.NoError(t, err)
-			first = false
-		} else {
+		} else if requestCounter == 1 {
 			assert.Equal(t, "/v2/configurations/123/vms/456/interfaces/789", req.URL.Path, "Bad path")
 			assert.Equal(t, "PUT", req.Method, "Bad method")
 
 			body, err := ioutil.ReadAll(req.Body)
 			assert.Nil(t, err, "Bad request body")
-			assert.JSONEq(t, exampleUpdateInterfaceRequest, string(body), "Bad request body")
+			assert.JSONEq(t, string(readTestFile(t, "exampleUpdateInterfaceRequest.json")), string(body), "Bad request body")
 
-			io.WriteString(rw, string(bytes))
-			second = false
+			_, err = io.WriteString(rw, string(readTestFile(t, "exampleUpdateInterfaceResponse.json")))
+			assert.NoError(t, err)
+		} else if requestCounter == 2 {
+			assert.Equal(t, "/v2/configurations/123/vms/456/interfaces/nic-20250403-38374059-4", req.URL.Path, "Bad path")
+			assert.Equal(t, http.MethodGet, req.Method, "Bad method")
+
+			var networkInterface Interface
+			err := json.Unmarshal([]byte(exampleInterface), &networkInterface)
+			assert.NoError(t, err)
+			networkInterface.IP = strToPtr("10.0.0.1")
+			networkInterface.Hostname = strToPtr("updated-hostname")
+			b, err := json.Marshal(&networkInterface)
+			assert.NoError(t, err)
+			_, err = io.WriteString(rw, string(b))
+			assert.NoError(t, err)
 		}
+		requestCounter++
 	}
+
+	var networkInterface Interface
+	err := json.Unmarshal([]byte(exampleInterface), &networkInterface)
+	assert.NoError(t, err)
+	networkInterface.IP = strToPtr("10.0.0.1")
+	networkInterface.Hostname = strToPtr("updated-hostname")
+	_, err = json.Marshal(&networkInterface)
+	assert.Nil(t, err, "Bad interface")
 
 	opts := &UpdateInterfaceRequest{
 		Hostname: strToPtr(*networkInterface.Hostname),
@@ -262,21 +196,26 @@ func TestUpdateInterface(t *testing.T) {
 
 	assert.Equal(t, networkInterface, *interfaceUpdate, "Bad interface")
 
-	assert.False(t, first)
-	assert.False(t, second)
+	assert.Equal(t, 3, requestCounter)
 }
 
 func TestDeleteInterface(t *testing.T) {
 	skytap, hs, handler := createClient(t)
 	defer hs.Close()
 
+	requestCounter := 0
+
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		log.Printf("Request: (%d)\n", requestCounter)
 		assert.Equal(t, "/v2/configurations/123/vms/456/interfaces/789", req.URL.Path, "Bad path")
 		assert.Equal(t, "DELETE", req.Method, "Bad method")
+		requestCounter++
 	}
 
 	err := skytap.Interfaces.Delete(context.Background(), "123", "456", "789")
 	assert.Nil(t, err, "Bad API method")
+
+	assert.Equal(t, 1, requestCounter)
 }
 
 func TestListInterfaces(t *testing.T) {
@@ -287,7 +226,8 @@ func TestListInterfaces(t *testing.T) {
 		assert.Equal(t, "/v2/configurations/123/vms/456/interfaces", req.URL.Path, "Bad path")
 		assert.Equal(t, "GET", req.Method, "Bad method")
 
-		io.WriteString(rw, exampleInterfaceListResponse)
+		_, err := io.WriteString(rw, string(readTestFile(t, "exampleInterfaceListResponse.json")))
+		assert.NoError(t, err)
 	}
 
 	result, err := skytap.Interfaces.List(context.Background(), "123", "456")
@@ -303,45 +243,130 @@ func TestListInterfaces(t *testing.T) {
 	assert.True(t, found, "Interface not found")
 }
 
-//func TestUpdateInterface422(t *testing.T) {
-//	exampleInterface := fmt.Sprintf(exampleAttachInterfaceResponse)
-//
-//	skytap, hs, handler := createClient(t)
-//	defer hs.Close()
-//
-//	var networkInterface Interface
-//	err := json.Unmarshal([]byte(exampleInterface), &networkInterface)
-//	assert.NoError(t, err)
-//
-//	networkInterface.Hostname = strToPtr("updated-hostname")
-//
-//	response, err := json.Marshal(&networkInterface)
-//	assert.Nil(t, err, "Bad interface")
-//	requestCounter := 0
-//
-//	*handler = func(rw http.ResponseWriter, req *http.Request) {
-//		assert.Equal(t, "/v2/configurations/123/vms/456/interfaces/789", req.URL.Path, "Bad path")
-//		assert.Equal(t, "PUT", req.Method, "Bad method")
-//
-//		body, err := ioutil.ReadAll(req.Body)
-//		assert.Nil(t, err, "Bad request body")
-//		assert.JSONEq(t, exampleUpdateInterfaceRequest, string(body), "Bad request body")
-//
-//		if requestCounter == 0 {
-//			rw.WriteHeader(http.StatusUnprocessableEntity)
-//		} else {
-//			_, err = io.WriteString(rw, string(response))
-//			assert.NoError(t, err)
-//		}
-//		requestCounter++
-//	}
-//	opts := &UpdateInterfaceRequest{
-//		Hostname: strToPtr(*networkInterface.Hostname),
-//		IP:       strToPtr("10.0.0.1"),
-//	}
-//	interfaceUpdate, err := skytap.Interfaces.Update(context.Background(), "123", "456", "789", opts)
-//	assert.Nil(t, err, "Bad API method")
-//
-//	assert.Equal(t, networkInterface, *interfaceUpdate, "Bad interface")
-//	assert.Equal(t, 2, requestCounter)
-//}
+func TestCompareInterfaceCreateTrue(t *testing.T) {
+	exampleInterface := fmt.Sprintf(string(readTestFile(t, "exampleCreateInterfaceResponse.json")), 456, 123)
+
+	var adapter Interface
+	err := json.Unmarshal([]byte(exampleInterface), &adapter)
+	assert.NoError(t, err)
+	opts := CreateInterfaceRequest{
+		NICType: nicTypeToPtr(NICTypeE1000),
+	}
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		_, err := io.WriteString(rw, fmt.Sprintf(exampleInterface))
+		assert.NoError(t, err)
+	}
+	message, ok := opts.compare(context.Background(), skytap, &adapter, vmRequestRunStateStopped("123", "456"))
+	assert.True(t, ok)
+	assert.Equal(t, "", message)
+}
+
+func TestCompareInterfaceCreateFalse(t *testing.T) {
+	exampleInterface := fmt.Sprintf(string(readTestFile(t, "exampleCreateInterfaceResponse.json")), 456, 123)
+
+	var adapter Interface
+	err := json.Unmarshal([]byte(exampleInterface), &adapter)
+	assert.NoError(t, err)
+	opts := CreateInterfaceRequest{
+		NICType: nicTypeToPtr(NICTypeE1000E),
+	}
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		_, err := io.WriteString(rw, fmt.Sprintf(exampleInterface))
+		assert.NoError(t, err)
+	}
+	message, ok := opts.compare(context.Background(), skytap, &adapter, vmRequestRunStateStopped("123", "456"))
+	assert.False(t, ok)
+	assert.Equal(t, "network adapter not ready", message)
+}
+
+func TestCompareInterfaceAttachTrue(t *testing.T) {
+	exampleInterface := fmt.Sprintf(string(readTestFile(t, "exampleAttachInterfaceResponse.json")))
+
+	var adapter Interface
+	err := json.Unmarshal([]byte(exampleInterface), &adapter)
+	assert.NoError(t, err)
+	opts := AttachInterfaceRequest{
+		strToPtr("23917287"),
+	}
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		_, err := io.WriteString(rw, fmt.Sprintf(exampleInterface))
+		assert.NoError(t, err)
+	}
+	message, ok := opts.compare(context.Background(), skytap, &adapter, vmRequestRunStateStopped("123", "456"))
+	assert.True(t, ok)
+	assert.Equal(t, "", message)
+}
+
+func TestCompareInterfaceAttachFalse(t *testing.T) {
+	exampleInterface := fmt.Sprintf(string(readTestFile(t, "exampleAttachInterfaceResponse.json")))
+
+	var adapter Interface
+	err := json.Unmarshal([]byte(exampleInterface), &adapter)
+	assert.NoError(t, err)
+	opts := AttachInterfaceRequest{
+		strToPtr("123"),
+	}
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		_, err := io.WriteString(rw, fmt.Sprintf(exampleInterface))
+		assert.NoError(t, err)
+	}
+	message, ok := opts.compare(context.Background(), skytap, &adapter, vmRequestRunStateStopped("123", "456"))
+	assert.False(t, ok)
+	assert.Equal(t, "network adapter not ready", message)
+}
+
+func TestCompareInterfaceUpdateTrue(t *testing.T) {
+	exampleInterface := fmt.Sprintf(string(readTestFile(t, "exampleUpdateInterfaceResponse.json")))
+
+	var adapter Interface
+	err := json.Unmarshal([]byte(exampleInterface), &adapter)
+	assert.NoError(t, err)
+	opts := UpdateInterfaceRequest{
+		IP:       strToPtr("10.0.0.1"),
+		Hostname: strToPtr("updated-hostname"),
+	}
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		_, err := io.WriteString(rw, fmt.Sprintf(exampleInterface))
+		assert.NoError(t, err)
+	}
+	message, ok := opts.compare(context.Background(), skytap, &adapter, vmRequestRunStateStopped("123", "456"))
+	assert.True(t, ok)
+	assert.Equal(t, "", message)
+}
+
+func TestCompareInterfaceUpdateFalse(t *testing.T) {
+	exampleInterface := fmt.Sprintf(string(readTestFile(t, "exampleUpdateInterfaceResponse.json")))
+
+	var adapter Interface
+	err := json.Unmarshal([]byte(exampleInterface), &adapter)
+	assert.NoError(t, err)
+	opts := UpdateInterfaceRequest{
+		IP:       strToPtr("10.0.0.2"),
+		Hostname: strToPtr("updated-hostname"),
+	}
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		_, err := io.WriteString(rw, fmt.Sprintf(exampleInterface))
+		assert.NoError(t, err)
+	}
+	message, ok := opts.compare(context.Background(), skytap, &adapter, vmRequestRunStateStopped("123", "456"))
+	assert.False(t, ok)
+	assert.Equal(t, "network adapter not ready", message)
+}
