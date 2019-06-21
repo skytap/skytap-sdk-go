@@ -275,7 +275,7 @@ func (s *VMsServiceClient) Create(ctx context.Context, environmentID string, opt
 	req, err := s.client.newRequest(ctx, "PUT", path, apiOpts)
 
 	var environment Environment
-	_, err = s.client.doWithChecks(ctx, req, &environment, buildEnvironmentRequestRunState(environmentID))
+	_, err = s.client.do(ctx, req, &environment, buildEnvironmentRequestRunState(environmentID))
 	if err != nil {
 		return nil, err
 	}
@@ -371,7 +371,7 @@ func (s *VMsServiceClient) updateHardware(ctx context.Context, environmentID str
 	}
 
 	var updatedVM *VM
-	_, err = s.client.doWithChecks(ctx, requestCreate, updatedVM, buildVMRequestRunStateStopped(environmentID, id))
+	_, err = s.client.do(ctx, requestCreate, updatedVM, buildVMRequestRunStateStopped(environmentID, id))
 	if err != nil {
 		return nil, err
 	}
@@ -440,7 +440,7 @@ func (s *VMsServiceClient) changeRunstate(ctx context.Context, environmentID str
 	}
 
 	var updatedVM VM
-	_, err = s.client.doWithChecks(ctx, requestCreate, &updatedVM, buildVMRequestRunState(environmentID, id))
+	_, err = s.client.do(ctx, requestCreate, &updatedVM, buildVMRequestRunState(environmentID, id))
 	if err != nil {
 		return nil, err
 	}

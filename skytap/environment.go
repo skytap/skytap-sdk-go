@@ -257,7 +257,7 @@ func (s *EnvironmentsServiceClient) Update(ctx context.Context, id string, updat
 	}
 
 	var environment Environment
-	_, err = s.client.doWithChecks(ctx, req, &environment, buildEnvironmentRequestRunState(id))
+	_, err = s.client.do(ctx, req, &environment, buildEnvironmentRequestRunState(id))
 	if err != nil {
 		return nil, err
 	}

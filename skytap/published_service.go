@@ -145,7 +145,7 @@ func (s *PublishedServicesServiceClient) Create(ctx context.Context, environment
 	}
 
 	var createdService PublishedService
-	_, err = s.client.doWithChecks(ctx, req, &createdService, buildVMRequestRunState(environmentID, vmID))
+	_, err = s.client.do(ctx, req, &createdService, buildVMRequestRunState(environmentID, vmID))
 	if err != nil {
 		return nil, err
 	}

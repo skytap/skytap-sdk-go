@@ -200,18 +200,16 @@ func (c *Client) newRequest(ctx context.Context, method, path string, body inter
 	return req, nil
 }
 
-func (c *Client) do(ctx context.Context, req *http.Request, v interface{}) (*http.Response, error) {
-	return c.doWithChecks(ctx, req, v, PreRequestRunState{})
-}
-
-func (c *Client) doWithChecks(ctx context.Context, req *http.Request, v interface{}, state PreRequestRunState) (*http.Response, error) {
+func (c *Client) do(ctx context.Context, req *http.Request, v interface{}, state ...PreRequestRunState) (*http.Response, error) {
 	var resp *http.Response
 	var err error
 	var makeRequest = true
 
-	err = c.checkStatePreRequest(ctx, req, state)
-	if err != nil {
-		return nil, err
+	if state != nil && len(state) > 0 {
+		err = c.checkStatePreRequest(ctx, req, state[0])
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	for i := 0; i < c.retryCount+1 && makeRequest; i++ {

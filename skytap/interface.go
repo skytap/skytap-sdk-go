@@ -188,7 +188,7 @@ func (s *InterfacesServiceClient) Create(ctx context.Context, environmentID stri
 	}
 
 	var createdInterface Interface
-	_, err = s.client.doWithChecks(ctx, req, &createdInterface, buildVMRequestRunStateStopped(environmentID, vmID))
+	_, err = s.client.do(ctx, req, &createdInterface, buildVMRequestRunStateStopped(environmentID, vmID))
 	if err != nil {
 		return nil, err
 	}
@@ -207,7 +207,7 @@ func (s *InterfacesServiceClient) Attach(ctx context.Context, environmentID stri
 	}
 
 	var updatedInterface Interface
-	_, err = s.client.doWithChecks(ctx, req, &updatedInterface, buildVMRequestRunState(environmentID, vmID))
+	_, err = s.client.do(ctx, req, &updatedInterface, buildVMRequestRunState(environmentID, vmID))
 	if err != nil {
 		return nil, err
 	}
@@ -226,7 +226,7 @@ func (s *InterfacesServiceClient) Update(ctx context.Context, environmentID stri
 	}
 
 	var updatedInterface Interface
-	_, err = s.client.doWithChecks(ctx, req, &updatedInterface, buildVMRequestRunStateStopped(environmentID, vmID))
+	_, err = s.client.do(ctx, req, &updatedInterface, buildVMRequestRunStateStopped(environmentID, vmID))
 	if err != nil {
 		return nil, err
 	}
