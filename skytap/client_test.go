@@ -1,10 +1,12 @@
 package skytap
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -315,7 +317,7 @@ func TestGetStatus200(t *testing.T) {
 	var environment Environment
 	path := fmt.Sprintf("%s/%s", environmentBasePath, "123")
 	req, err := skytap.newRequest(context.Background(), "GET", path, nil)
-	resp, err := skytap.requestGet(context.Background(), req, &environment)
+	resp, err := skytap.request(context.Background(), req, &environment)
 
 	assert.NoError(t, err)
 	assert.Equal(t, 200, resp.StatusCode)
@@ -364,4 +366,63 @@ func TestPutPostDelete(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, 3, requestCounter)
+}
+
+func TestOutputAndHandleError(t *testing.T) {
+	message := `{
+		"errors": [
+		"IP address conflicts with another network adapter on the network"
+	]
+	}`
+
+	skytap, hs, _ := createClient(t)
+	defer hs.Close()
+	resp := http.Response{}
+
+	resp.Body = ioutil.NopCloser(bytes.NewBufferString(message))
+	errorSpecial := skytap.buildErrorResponse(&resp).(*ErrorResponse)
+	assert.Equal(t, message, *errorSpecial.Message, "Bad API method")
+}
+
+func TestOutputAndHandle422Busy(t *testing.T) {
+	message := `{
+		"errors": [
+		"The machine was busy. Try again later."
+	]
+	}`
+
+	skytap, hs, _ := createClient(t)
+	defer hs.Close()
+	resp := http.Response{}
+
+	resp.Body = ioutil.NopCloser(bytes.NewBufferString(message))
+	_, _, err := skytap.handleError(&resp, http.StatusUnprocessableEntity)
+	assert.Nil(t, err)
+}
+
+func TestMakeTimeout(t *testing.T) {
+	var env Environment
+	err := json.Unmarshal(readTestFile(t, "exampleEnvironment.json"), &env)
+	assert.NoError(t, err)
+	env.Runstate = environmentRunStateToPtr(EnvironmentRunstateBusy)
+	b, err := json.Marshal(&env)
+	assert.Nil(t, err)
+
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+
+	requestCounter := 0
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		log.Printf("Request: (%d)\n", requestCounter)
+		_, err = io.WriteString(rw, string(b))
+		assert.NoError(t, err)
+		requestCounter++
+	}
+
+	req, err := skytap.newRequest(context.Background(), http.MethodGet, "", nil)
+	assert.Nil(t, err)
+	err = skytap.checkResourceStateUntilSatisfied(context.Background(), req, envRunStateNotBusy(""))
+	assert.Error(t, err)
+	assert.Equal(t, testingRetryCount, requestCounter)
+	assert.Equal(t, "timeout waiting for state", err.Error())
 }
