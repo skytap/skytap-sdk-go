@@ -384,6 +384,24 @@ func TestOutputAndHandleError(t *testing.T) {
 	assert.Equal(t, message, *errorSpecial.Message, "Bad API method")
 }
 
+func TestOutputAndHandle422Error(t *testing.T) {
+	message := `{
+		"errors": [
+		"Network adapter type was not a valid choice for this operating system"
+	]
+	}`
+
+	skytap, hs, _ := createClient(t)
+	defer hs.Close()
+	resp := http.Response{}
+
+	resp.Body = ioutil.NopCloser(bytes.NewBufferString(message))
+	_, _, err := skytap.handleError(&resp, http.StatusUnprocessableEntity)
+	errSpecial := err.(*ErrorResponse)
+	assert.Equal(t, message, *errSpecial.Message, "Bad API method")
+	assert.Error(t, errSpecial)
+}
+
 func TestOutputAndHandle422Busy(t *testing.T) {
 	message := `{
 		"errors": [

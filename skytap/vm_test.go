@@ -475,6 +475,9 @@ func TestUpdateCPURAMVM(t *testing.T) {
 
 	assert.Equal(t, 12, requestCounter)
 
+	vmUpdated.Hardware.Disks[1].Name = strToPtr("1")
+	vmUpdated.Hardware.Disks[2].Name = strToPtr("2")
+	vmUpdated.Hardware.Disks[3].Name = strToPtr("3")
 	assert.Equal(t, vmUpdated, *vm, "Bad vm")
 	assert.Equal(t, VMRunstateRunning, *vm.Runstate, "running")
 }
