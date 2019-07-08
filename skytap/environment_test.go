@@ -349,3 +349,27 @@ func TestCompareEnvironmentUpdateFalse(t *testing.T) {
 	assert.False(t, ok)
 	assert.Equal(t, "environment not ready", message)
 }
+
+func TestConfirmNilRoutableAlwaysFalse(t *testing.T) {
+	var environment Environment
+	err := json.Unmarshal(readTestFile(t, "exampleEnvironment.json"), &environment)
+	assert.NoError(t, err)
+	environment.Routable = nil
+
+	opts := UpdateEnvironmentRequest{
+		Routable: boolToPtr(false),
+	}
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		b, err := json.Marshal(&environment)
+		assert.Nil(t, err)
+		_, err = io.WriteString(rw, string(b))
+		assert.NoError(t, err)
+	}
+
+	message, ok := opts.compareResponse(context.Background(), skytap, &environment, envRunStateNotBusy("123"))
+	assert.True(t, ok)
+	assert.Equal(t, "", message)
+}
