@@ -377,10 +377,10 @@ func TestUpdateCPURAMVM(t *testing.T) {
 			_, err := io.WriteString(rw, string(bytesExisting))
 			assert.NoError(t, err)
 		} else if requestCounter == 1 {
-			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
+			assert.Equal(t, "/v2/configurations/123", req.URL.Path, "Bad path")
 			assert.Equal(t, "GET", req.Method, "Bad method")
 
-			_, err := io.WriteString(rw, string(bytesExisting))
+			_, err := io.WriteString(rw, string(readTestFile(t, "exampleEnvironment.json")))
 			assert.NoError(t, err)
 		} else if requestCounter == 2 {
 			// turn to stopped
@@ -429,10 +429,10 @@ func TestUpdateCPURAMVM(t *testing.T) {
 			_, err := io.WriteString(rw, string(bytes))
 			assert.NoError(t, err)
 		} else if requestCounter == 8 {
-			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
+			assert.Equal(t, "/v2/configurations/123", req.URL.Path, "Bad path")
 			assert.Equal(t, "GET", req.Method, "Bad method")
 
-			_, err := io.WriteString(rw, string(bytes))
+			_, err := io.WriteString(rw, string(readTestFile(t, "exampleEnvironment.json")))
 			assert.NoError(t, err)
 		} else if requestCounter == 9 {
 			// turn to running
@@ -502,10 +502,10 @@ func TestUpdateRunstateVM(t *testing.T) {
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
 		log.Printf("Request: (%d)\n", requestCounter)
 		if requestCounter == 0 {
-			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
+			assert.Equal(t, "/v2/configurations/123", req.URL.Path, "Bad path")
 			assert.Equal(t, "GET", req.Method, "Bad method")
 
-			_, err := io.WriteString(rw, response)
+			_, err := io.WriteString(rw, string(readTestFile(t, "exampleEnvironment.json")))
 			assert.NoError(t, err)
 		} else if requestCounter == 1 {
 			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
@@ -540,8 +540,6 @@ func TestUpdateRunstateVM(t *testing.T) {
 }
 
 func TestDeleteVM(t *testing.T) {
-	response := fmt.Sprintf(string(readTestFile(t, "VMResponse.json")), 456)
-
 	skytap, hs, handler := createClient(t)
 	defer hs.Close()
 
@@ -550,10 +548,10 @@ func TestDeleteVM(t *testing.T) {
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
 		log.Printf("Request: (%d)\n", requestCounter)
 		if requestCounter == 0 {
-			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
+			assert.Equal(t, "/v2/configurations/123", req.URL.Path, "Bad path")
 			assert.Equal(t, http.MethodGet, req.Method, "Bad method")
 
-			_, err := io.WriteString(rw, response)
+			_, err := io.WriteString(rw, string(readTestFile(t, "exampleEnvironment.json")))
 			assert.NoError(t, err)
 		} else if requestCounter == 1 {
 			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
