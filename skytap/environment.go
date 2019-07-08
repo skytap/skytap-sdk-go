@@ -213,14 +213,14 @@ func (s *EnvironmentsServiceClient) Get(ctx context.Context, id string) (*Enviro
 }
 
 // Create an environment
-func (s *EnvironmentsServiceClient) Create(ctx context.Context, request *CreateEnvironmentRequest) (*Environment, error) {
-	req, err := s.client.newRequest(ctx, "POST", environmentLegacyBasePath, request)
+func (s *EnvironmentsServiceClient) Create(ctx context.Context, opts *CreateEnvironmentRequest) (*Environment, error) {
+	req, err := s.client.newRequest(ctx, "POST", environmentLegacyBasePath, opts)
 	if err != nil {
 		return nil, err
 	}
 
 	var createdEnvironment Environment
-	_, err = s.client.do(ctx, req, &createdEnvironment, nil, request)
+	_, err = s.client.do(ctx, req, &createdEnvironment, nil, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -236,15 +236,15 @@ func (s *EnvironmentsServiceClient) Create(ctx context.Context, request *CreateE
 	}
 
 	updateOpts := &UpdateEnvironmentRequest{
-		Name:            request.Name,
-		Description:     request.Description,
-		Owner:           request.Owner,
-		OutboundTraffic: request.OutboundTraffic,
-		Routable:        request.Routable,
-		SuspendOnIdle:   request.SuspendOnIdle,
-		SuspendAtTime:   request.SuspendAtTime,
-		ShutdownOnIdle:  request.ShutdownOnIdle,
-		ShutdownAtTime:  request.ShutdownAtTime,
+		Name:            opts.Name,
+		Description:     opts.Description,
+		Owner:           opts.Owner,
+		OutboundTraffic: opts.OutboundTraffic,
+		Routable:        opts.Routable,
+		SuspendOnIdle:   opts.SuspendOnIdle,
+		SuspendAtTime:   opts.SuspendAtTime,
+		ShutdownOnIdle:  opts.ShutdownOnIdle,
+		ShutdownAtTime:  opts.ShutdownAtTime,
 		Runstate:        runstate,
 	}
 
