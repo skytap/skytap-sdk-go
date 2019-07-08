@@ -93,65 +93,6 @@ func TestReadService(t *testing.T) {
 	assert.Equal(t, 1, requestCounter)
 }
 
-func TestUpdateService(t *testing.T) {
-	response := fmt.Sprintf(string(readTestFile(t, "VMResponse.json")), 456)
-
-	port := 8081
-	exampleService := fmt.Sprintf(string(readTestFile(t, "examplePublishedServiceResponse.json")), port, port)
-
-	skytap, hs, handler := createClient(t)
-	defer hs.Close()
-
-	var service PublishedService
-	err := json.Unmarshal([]byte(exampleService), &service)
-	assert.NoError(t, err)
-
-	requestCounter := 0
-
-	*handler = func(rw http.ResponseWriter, req *http.Request) {
-		log.Printf("Request: (%d)\n", requestCounter)
-		if requestCounter == 0 {
-			assert.Equal(t, "/v2/configurations/123/vms/456/interfaces/789/services/abc", req.URL.Path, "Bad path")
-			assert.Equal(t, "DELETE", req.Method, "Bad method")
-		} else if requestCounter == 1 {
-			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
-			assert.Equal(t, http.MethodGet, req.Method, "Bad method")
-
-			_, err := io.WriteString(rw, response)
-			assert.NoError(t, err)
-		} else if requestCounter == 2 {
-			assert.Equal(t, "/v2/configurations/123/vms/456/interfaces/789/services", req.URL.Path, "Bad path")
-			assert.Equal(t, "POST", req.Method, "Bad method")
-
-			body, err := ioutil.ReadAll(req.Body)
-			assert.Nil(t, err, "Bad request body")
-			assert.JSONEq(t, fmt.Sprintf(string(readTestFile(t, "examplePublishedServiceRequest.json")), port), string(body), "Bad request body")
-
-			_, err = io.WriteString(rw, exampleService)
-			assert.NoError(t, err)
-		} else if requestCounter == 3 {
-			assert.Equal(t, "/v2/configurations/123/vms/456/interfaces/789/services/8081", req.URL.Path, "Bad path")
-			assert.Equal(t, http.MethodGet, req.Method, "Bad method")
-
-			_, err := io.WriteString(rw, exampleService)
-			assert.NoError(t, err)
-		}
-		requestCounter++
-	}
-
-	opts := &UpdatePublishedServiceRequest{
-		CreatePublishedServiceRequest{
-			InternalPort: intToPtr(port),
-		},
-	}
-	serviceUpdate, err := skytap.PublishedServices.Update(context.Background(), "123", "456", "789", "abc", opts)
-	assert.Nil(t, err, "Bad API method")
-
-	assert.Equal(t, service, *serviceUpdate, "Bad publishedService")
-
-	assert.Equal(t, 4, requestCounter)
-}
-
 func TestDeleteService(t *testing.T) {
 	skytap, hs, handler := createClient(t)
 	defer hs.Close()
@@ -233,58 +174,6 @@ func TestComparePublishedServiceCreateFalse(t *testing.T) {
 	assert.NoError(t, err)
 	opts := CreatePublishedServiceRequest{
 		InternalPort: intToPtr(8081),
-	}
-	skytap, hs, handler := createClient(t)
-	defer hs.Close()
-
-	*handler = func(rw http.ResponseWriter, req *http.Request) {
-		response := fmt.Sprintf(string(readTestFile(t, "examplePublishedServiceRequest.json")), 8080)
-		_, err := io.WriteString(rw, string(response))
-		assert.NoError(t, err)
-	}
-	state := vmRunStateNotBusy("123", "456")
-	state.adapterID = strToPtr("789")
-	message, ok := opts.compare(context.Background(), skytap, &service, state)
-	assert.False(t, ok)
-	assert.Equal(t, "published service not ready", message)
-}
-
-func TestComparePublishedServiceUpdateTrue(t *testing.T) {
-	examplePublishedService := fmt.Sprintf(string(readTestFile(t, "examplePublishedServiceResponse.json")), 789, 8080)
-
-	var service PublishedService
-	err := json.Unmarshal([]byte(examplePublishedService), &service)
-	assert.NoError(t, err)
-	opts := UpdatePublishedServiceRequest{
-		CreatePublishedServiceRequest{
-			InternalPort: intToPtr(8081),
-		},
-	}
-	skytap, hs, handler := createClient(t)
-	defer hs.Close()
-
-	*handler = func(rw http.ResponseWriter, req *http.Request) {
-		response := fmt.Sprintf(string(readTestFile(t, "examplePublishedServiceRequest.json")), 8081)
-		_, err := io.WriteString(rw, string(response))
-		assert.NoError(t, err)
-	}
-	state := vmRunStateNotBusy("123", "456")
-	state.adapterID = strToPtr("789")
-	message, ok := opts.compare(context.Background(), skytap, &service, state)
-	assert.True(t, ok)
-	assert.Equal(t, "", message)
-}
-
-func TestComparePublishedServiceUpdateFalse(t *testing.T) {
-	examplePublishedService := fmt.Sprintf(string(readTestFile(t, "examplePublishedServiceResponse.json")), 789, 8080)
-
-	var service PublishedService
-	err := json.Unmarshal([]byte(examplePublishedService), &service)
-	assert.NoError(t, err)
-	opts := UpdatePublishedServiceRequest{
-		CreatePublishedServiceRequest{
-			InternalPort: intToPtr(8081),
-		},
 	}
 	skytap, hs, handler := createClient(t)
 	defer hs.Close()
