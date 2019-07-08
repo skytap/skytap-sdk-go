@@ -200,6 +200,8 @@ func TestUpdateInterface(t *testing.T) {
 }
 
 func TestDeleteInterface(t *testing.T) {
+	response := fmt.Sprintf(string(readTestFile(t, "VMResponse.json")), 456)
+
 	skytap, hs, handler := createClient(t)
 	defer hs.Close()
 
@@ -207,15 +209,24 @@ func TestDeleteInterface(t *testing.T) {
 
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
 		log.Printf("Request: (%d)\n", requestCounter)
-		assert.Equal(t, "/v2/configurations/123/vms/456/interfaces/789", req.URL.Path, "Bad path")
-		assert.Equal(t, "DELETE", req.Method, "Bad method")
+		if requestCounter == 0 {
+			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
+			assert.Equal(t, http.MethodGet, req.Method, "Bad method")
+
+			_, err := io.WriteString(rw, string(response))
+			assert.NoError(t, err)
+		} else if requestCounter == 1 {
+			log.Printf("Request: (%d)\n", requestCounter)
+			assert.Equal(t, "/v2/configurations/123/vms/456/interfaces/789", req.URL.Path, "Bad path")
+			assert.Equal(t, "DELETE", req.Method, "Bad method")
+		}
 		requestCounter++
 	}
 
 	err := skytap.Interfaces.Delete(context.Background(), "123", "456", "789")
 	assert.Nil(t, err, "Bad API method")
 
-	assert.Equal(t, 1, requestCounter)
+	assert.Equal(t, 2, requestCounter)
 }
 
 func TestListInterfaces(t *testing.T) {
