@@ -210,7 +210,7 @@ func TestCompareNetworkCreateTrue(t *testing.T) {
 		_, err := io.WriteString(rw, exampleNetwork)
 		assert.NoError(t, err)
 	}
-	message, ok := opts.compare(context.Background(), skytap, &network, envRunStateNotBusy("123"))
+	message, ok := opts.compareResponse(context.Background(), skytap, &network, envRunStateNotBusy("123"))
 	assert.True(t, ok)
 	assert.Equal(t, "", message)
 }
@@ -231,7 +231,7 @@ func TestCompareNetworkCreateFalse(t *testing.T) {
 		_, err := io.WriteString(rw, exampleNetwork)
 		assert.NoError(t, err)
 	}
-	message, ok := opts.compare(context.Background(), skytap, &network, envRunStateNotBusy("123"))
+	message, ok := opts.compareResponse(context.Background(), skytap, &network, envRunStateNotBusy("123"))
 	assert.False(t, ok)
 	assert.Equal(t, "network not ready", message)
 }
@@ -256,7 +256,7 @@ func TestCompareNetworkUpdateTrue(t *testing.T) {
 		_, err := io.WriteString(rw, exampleNetwork)
 		assert.NoError(t, err)
 	}
-	message, ok := opts.compare(context.Background(), skytap, &network, envRunStateNotBusy("123"))
+	message, ok := opts.compareResponse(context.Background(), skytap, &network, envRunStateNotBusy("123"))
 	assert.True(t, ok)
 	assert.Equal(t, "", message)
 }
@@ -277,7 +277,7 @@ func TestCompareNetworkUpdateFalse(t *testing.T) {
 		_, err := io.WriteString(rw, exampleNetwork)
 		assert.NoError(t, err)
 	}
-	message, ok := opts.compare(context.Background(), skytap, &network, envRunStateNotBusy("123"))
+	message, ok := opts.compareResponse(context.Background(), skytap, &network, envRunStateNotBusy("123"))
 	assert.False(t, ok)
 	assert.Equal(t, "network not ready", message)
 }

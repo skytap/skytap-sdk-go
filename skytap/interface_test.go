@@ -270,7 +270,7 @@ func TestCompareInterfaceCreateTrue(t *testing.T) {
 		_, err := io.WriteString(rw, fmt.Sprintf(exampleInterface))
 		assert.NoError(t, err)
 	}
-	message, ok := opts.compare(context.Background(), skytap, &adapter, vmRequestRunStateStopped("123", "456"))
+	message, ok := opts.compareResponse(context.Background(), skytap, &adapter, vmRequestRunStateStopped("123", "456"))
 	assert.True(t, ok)
 	assert.Equal(t, "", message)
 }
@@ -291,7 +291,7 @@ func TestCompareInterfaceCreateFalse(t *testing.T) {
 		_, err := io.WriteString(rw, fmt.Sprintf(exampleInterface))
 		assert.NoError(t, err)
 	}
-	message, ok := opts.compare(context.Background(), skytap, &adapter, vmRequestRunStateStopped("123", "456"))
+	message, ok := opts.compareResponse(context.Background(), skytap, &adapter, vmRequestRunStateStopped("123", "456"))
 	assert.False(t, ok)
 	assert.Equal(t, "network adapter not ready", message)
 }
@@ -312,7 +312,7 @@ func TestCompareInterfaceAttachTrue(t *testing.T) {
 		_, err := io.WriteString(rw, fmt.Sprintf(exampleInterface))
 		assert.NoError(t, err)
 	}
-	message, ok := opts.compare(context.Background(), skytap, &adapter, vmRequestRunStateStopped("123", "456"))
+	message, ok := opts.compareResponse(context.Background(), skytap, &adapter, vmRequestRunStateStopped("123", "456"))
 	assert.True(t, ok)
 	assert.Equal(t, "", message)
 }
@@ -333,7 +333,7 @@ func TestCompareInterfaceAttachFalse(t *testing.T) {
 		_, err := io.WriteString(rw, fmt.Sprintf(exampleInterface))
 		assert.NoError(t, err)
 	}
-	message, ok := opts.compare(context.Background(), skytap, &adapter, vmRequestRunStateStopped("123", "456"))
+	message, ok := opts.compareResponse(context.Background(), skytap, &adapter, vmRequestRunStateStopped("123", "456"))
 	assert.False(t, ok)
 	assert.Equal(t, "network adapter not ready", message)
 }
@@ -355,7 +355,7 @@ func TestCompareInterfaceUpdateTrue(t *testing.T) {
 		_, err := io.WriteString(rw, fmt.Sprintf(exampleInterface))
 		assert.NoError(t, err)
 	}
-	message, ok := opts.compare(context.Background(), skytap, &adapter, vmRequestRunStateStopped("123", "456"))
+	message, ok := opts.compareResponse(context.Background(), skytap, &adapter, vmRequestRunStateStopped("123", "456"))
 	assert.True(t, ok)
 	assert.Equal(t, "", message)
 }
@@ -377,7 +377,7 @@ func TestCompareInterfaceUpdateFalse(t *testing.T) {
 		_, err := io.WriteString(rw, fmt.Sprintf(exampleInterface))
 		assert.NoError(t, err)
 	}
-	message, ok := opts.compare(context.Background(), skytap, &adapter, vmRequestRunStateStopped("123", "456"))
+	message, ok := opts.compareResponse(context.Background(), skytap, &adapter, vmRequestRunStateStopped("123", "456"))
 	assert.False(t, ok)
 	assert.Equal(t, "network adapter not ready", message)
 }

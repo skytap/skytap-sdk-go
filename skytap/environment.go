@@ -291,7 +291,7 @@ func (s *EnvironmentsServiceClient) Delete(ctx context.Context, id string) error
 	return nil
 }
 
-func (payload *CreateEnvironmentRequest) compare(ctx context.Context, c *Client, v interface{}, state *environmentVMRunState) (string, bool) {
+func (payload *CreateEnvironmentRequest) compareResponse(ctx context.Context, c *Client, v interface{}, state *environmentVMRunState) (string, bool) {
 	if envOriginal, ok := v.(*Environment); ok {
 		env, err := c.Environments.Get(ctx, *envOriginal.ID)
 		if err != nil {
@@ -308,7 +308,7 @@ func (payload *CreateEnvironmentRequest) compare(ctx context.Context, c *Client,
 	return requestNotAsExpected, false
 }
 
-func (payload *UpdateEnvironmentRequest) compare(ctx context.Context, c *Client, v interface{}, state *environmentVMRunState) (string, bool) {
+func (payload *UpdateEnvironmentRequest) compareResponse(ctx context.Context, c *Client, v interface{}, state *environmentVMRunState) (string, bool) {
 	if envOriginal, ok := v.(*Environment); ok {
 		env, err := c.Environments.Get(ctx, *envOriginal.ID)
 		if err != nil {

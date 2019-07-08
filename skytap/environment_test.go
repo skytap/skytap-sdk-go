@@ -264,7 +264,7 @@ func TestCompareEnvironmentCreateTrue(t *testing.T) {
 		assert.NoError(t, err)
 	}
 
-	message, ok := opts.compare(context.Background(), skytap, &environment, envRunStateNotBusy("123"))
+	message, ok := opts.compareResponse(context.Background(), skytap, &environment, envRunStateNotBusy("123"))
 	assert.True(t, ok)
 	assert.Equal(t, "", message)
 }
@@ -294,7 +294,7 @@ func TestCompareEnvironmentCreateFalse(t *testing.T) {
 
 		assert.NoError(t, err)
 	}
-	message, ok := opts.compare(context.Background(), skytap, &environment, envRunStateNotBusy("123"))
+	message, ok := opts.compareResponse(context.Background(), skytap, &environment, envRunStateNotBusy("123"))
 	assert.False(t, ok)
 	assert.Equal(t, "environment not ready", message)
 }
@@ -316,7 +316,7 @@ func TestCompareEnvironmentUpdateTrue(t *testing.T) {
 		assert.NoError(t, err)
 	}
 
-	message, ok := opts.compare(context.Background(), skytap, &environment, envRunStateNotBusy("123"))
+	message, ok := opts.compareResponse(context.Background(), skytap, &environment, envRunStateNotBusy("123"))
 	assert.True(t, ok)
 	assert.Equal(t, "", message)
 }
@@ -345,7 +345,7 @@ func TestCompareEnvironmentUpdateFalse(t *testing.T) {
 
 		assert.NoError(t, err)
 	}
-	message, ok := opts.compare(context.Background(), skytap, &environment, envRunStateNotBusy("123"))
+	message, ok := opts.compareResponse(context.Background(), skytap, &environment, envRunStateNotBusy("123"))
 	assert.False(t, ok)
 	assert.Equal(t, "environment not ready", message)
 }

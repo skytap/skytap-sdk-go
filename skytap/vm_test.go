@@ -800,7 +800,7 @@ func TestCompareVMCreateTrue(t *testing.T) {
 	}
 	state := vmRunStateNotBusy("123", "456")
 	state.diskIdentification = buildDiskidentification()
-	message, ok := opts.compare(context.Background(), skytap, &env, state)
+	message, ok := opts.compareResponse(context.Background(), skytap, &env, state)
 	assert.True(t, ok)
 	assert.Equal(t, "", message)
 }
@@ -824,7 +824,7 @@ func TestCompareVMCreateFalse(t *testing.T) {
 	}
 	state := vmRunStateNotBusy("123", "456")
 	state.diskIdentification = buildDiskidentification()
-	message, ok := opts.compare(context.Background(), skytap, &env, state)
+	message, ok := opts.compareResponse(context.Background(), skytap, &env, state)
 	assert.False(t, ok)
 	assert.Equal(t, "VM environment not ready", message)
 }
@@ -847,7 +847,7 @@ func TestCompareVMUpdateRunStateTrue(t *testing.T) {
 	}
 	state := vmRunStateNotBusy("123", "456")
 	state.diskIdentification = buildDiskidentification()
-	message, ok := opts.compare(context.Background(), skytap, &vm, state)
+	message, ok := opts.compareResponse(context.Background(), skytap, &vm, state)
 	assert.True(t, ok)
 	assert.Equal(t, "", message)
 }
@@ -873,7 +873,7 @@ func TestCompareVMUpdateRunStateFalse(t *testing.T) {
 	}
 	state := vmRunStateNotBusy("123", "456")
 	state.diskIdentification = buildDiskidentification()
-	message, ok := opts.compare(context.Background(), skytap, &vm, state)
+	message, ok := opts.compareResponse(context.Background(), skytap, &vm, state)
 	assert.False(t, ok)
 	assert.Equal(t, "VM not ready", message)
 }
@@ -927,7 +927,7 @@ func TestCompareVMUpdateTrue(t *testing.T) {
 	}
 	state := vmRunStateNotBusy("123", "456")
 	state.diskIdentification = buildDiskidentification()
-	message, ok := opts.compare(context.Background(), skytap, &vm, state)
+	message, ok := opts.compareResponse(context.Background(), skytap, &vm, state)
 	assert.True(t, ok)
 	assert.Equal(t, "", message)
 }
@@ -951,7 +951,7 @@ func TestCompareVMUpdateFalse(t *testing.T) {
 	}
 	state := vmRunStateNotBusy("123", "456")
 	state.diskIdentification = buildDiskidentification()
-	message, ok := opts.compare(context.Background(), skytap, &vm, state)
+	message, ok := opts.compareResponse(context.Background(), skytap, &vm, state)
 	assert.False(t, ok)
 	assert.Equal(t, "VM not ready", message)
 }
@@ -975,7 +975,7 @@ func TestCompareDiskStructureNoDisks(t *testing.T) {
 	}
 	state := vmRunStateNotBusy("123", "456")
 	state.diskIdentification = buildDiskidentification()
-	message, ok := opts.compare(context.Background(), skytap, &vm, state)
+	message, ok := opts.compareResponse(context.Background(), skytap, &vm, state)
 	assert.False(t, ok)
 	assert.Equal(t, "VM not ready", message)
 }

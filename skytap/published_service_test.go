@@ -161,7 +161,7 @@ func TestComparePublishedServiceCreateTrue(t *testing.T) {
 	}
 	state := vmRunStateNotBusy("123", "456")
 	state.adapterID = strToPtr("789")
-	message, ok := opts.compare(context.Background(), skytap, &service, state)
+	message, ok := opts.compareResponse(context.Background(), skytap, &service, state)
 	assert.True(t, ok)
 	assert.Equal(t, "", message)
 }
@@ -185,7 +185,7 @@ func TestComparePublishedServiceCreateFalse(t *testing.T) {
 	}
 	state := vmRunStateNotBusy("123", "456")
 	state.adapterID = strToPtr("789")
-	message, ok := opts.compare(context.Background(), skytap, &service, state)
+	message, ok := opts.compareResponse(context.Background(), skytap, &service, state)
 	assert.False(t, ok)
 	assert.Equal(t, "published service not ready", message)
 }
