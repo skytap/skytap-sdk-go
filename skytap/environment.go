@@ -365,7 +365,7 @@ func (payload *UpdateEnvironmentRequest) string() string {
 	description := ""
 	owner := ""
 	outboundTraffic := ""
-	routable := ""
+	routable := "false"
 	suspendOnIdle := ""
 	suspendAtTime := ""
 	shutdownOnIdle := ""
