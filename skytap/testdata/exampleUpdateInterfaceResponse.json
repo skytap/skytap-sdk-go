@@ -1,0 +1,21 @@
+{
+  "id": "nic-20250403-38374059-4",
+  "ip": "10.0.0.1",
+  "hostname": "updated-hostname",
+  "mac": "00:50:56:05:3F:84",
+  "services_count": 0,
+  "services": [],
+  "public_ips_count": 0,
+  "public_ips": [],
+  "vm_id": "37533321",
+  "vm_name": "CentOS 6 Desktop x64",
+  "status": "Powered off",
+  "network_id": "23922457",
+  "network_name": "tftest-network-1",
+  "network_url": "https://cloud.skytap.com/v2/configurations/40071754/networks/23922457",
+  "network_type": "automatic",
+  "network_subnet": "192.168.0.0/16",
+  "nic_type": "vmxnet3",
+  "secondary_ips": [],
+  "public_ip_attachments": []
+}

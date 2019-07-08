@@ -1,0 +1,8 @@
+{
+  "name":"test network",
+  "network_type": "automatic",
+  "subnet": "10.0.2.0/24",
+  "domain": "sampledomain.com",
+  "gateway": "10.0.2.254",
+  "tunnelable": true
+}

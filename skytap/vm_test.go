@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"path/filepath"
 	"testing"
@@ -25,56 +26,37 @@ func TestCreateVM(t *testing.T) {
 	skytap, hs, handler := createClient(t)
 	defer hs.Close()
 
-	*handler = func(rw http.ResponseWriter, req *http.Request) {
-		assert.Equal(t, "/configurations/123", req.URL.Path, "Bad path")
-		assert.Equal(t, "PUT", req.Method, "Bad method")
-
-		body, err := ioutil.ReadAll(req.Body)
-		assert.Nil(t, err, "Bad request body")
-		assert.JSONEq(t, request, string(body), "Bad request body")
-
-		_, err = io.WriteString(rw, response)
-		assert.NoError(t, err)
-	}
-	opts := &CreateVMRequest{
-		TemplateID: "42",
-		VMID:       "43",
-	}
-
-	createdVM, err := skytap.VMs.Create(context.Background(), "123", opts)
-	assert.Nil(t, err, "Bad API method")
-
-	var environment Environment
-	err = json.Unmarshal([]byte(response), &environment)
-	assert.NoError(t, err)
-	assert.Equal(t, environment.VMs[1], *createdVM, "Bad VM")
-}
-
-func TestCreateVM422(t *testing.T) {
-	request := fmt.Sprintf(`{
-		"template_id": "%d",
-    		"vm_ids": [
-        		"%d"
-    	]
-	}`, 42, 43)
-	response := fmt.Sprintf(string(readTestFile(t, "createVMResponse.json")), 123, 123, 456)
 	requestCounter := 0
 
-	skytap, hs, handler := createClient(t)
-	defer hs.Close()
-
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
-		assert.Equal(t, "/configurations/123", req.URL.Path, "Bad path")
-		assert.Equal(t, "PUT", req.Method, "Bad method")
-
-		body, err := ioutil.ReadAll(req.Body)
-		assert.Nil(t, err, "Bad request body")
-		assert.JSONEq(t, request, string(body), "Bad request body")
-
+		log.Printf("Request: (%d)\n", requestCounter)
 		if requestCounter == 0 {
-			rw.WriteHeader(http.StatusUnprocessableEntity)
-		} else {
+			assert.Equal(t, "/v2/configurations/123", req.URL.Path, "Bad path")
+			assert.Equal(t, http.MethodGet, req.Method, "Bad method")
+
+			_, err := io.WriteString(rw, string(readTestFile(t, "exampleEnvironment.json")))
+			assert.NoError(t, err)
+		} else if requestCounter == 1 {
+			assert.Equal(t, "/configurations/123", req.URL.Path, "Bad path")
+			assert.Equal(t, http.MethodPut, req.Method, "Bad method")
+
+			body, err := ioutil.ReadAll(req.Body)
+			assert.Nil(t, err, "Bad request body")
+			assert.JSONEq(t, request, string(body), "Bad request body")
+
 			_, err = io.WriteString(rw, response)
+			assert.NoError(t, err)
+		} else if requestCounter == 2 {
+			assert.Equal(t, "/v2/configurations/123", req.URL.Path, "Bad path")
+			assert.Equal(t, http.MethodGet, req.Method, "Bad method")
+
+			_, err := io.WriteString(rw, string(readTestFile(t, "exampleEnvironment.json")))
+			assert.NoError(t, err)
+		} else if requestCounter == 3 {
+			assert.Equal(t, "/v2/configurations/123", req.URL.Path, "Bad path")
+			assert.Equal(t, http.MethodPut, req.Method, "Bad method")
+
+			_, err := io.WriteString(rw, string(readTestFile(t, "exampleEnvironment.json")))
 			assert.NoError(t, err)
 		}
 		requestCounter++
@@ -92,7 +74,7 @@ func TestCreateVM422(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, environment.VMs[1], *createdVM, "Bad VM")
 
-	assert.Equal(t, 2, requestCounter)
+	assert.Equal(t, 3, requestCounter)
 }
 
 func TestCreateVMError(t *testing.T) {
@@ -102,20 +84,28 @@ func TestCreateVMError(t *testing.T) {
         		"%d"
     	]
 	}`, 42, 43)
-	requestCounter := 0
-
 	skytap, hs, handler := createClient(t)
 	defer hs.Close()
 
+	requestCounter := 0
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
-		assert.Equal(t, "/configurations/123", req.URL.Path, "Bad path")
-		assert.Equal(t, "PUT", req.Method, "Bad method")
+		log.Printf("Request: (%d)\n", requestCounter)
+		if requestCounter == 0 {
+			assert.Equal(t, "/v2/configurations/123", req.URL.Path, "Bad path")
+			assert.Equal(t, http.MethodGet, req.Method, "Bad method")
 
-		body, err := ioutil.ReadAll(req.Body)
-		assert.Nil(t, err, "Bad request body")
-		assert.JSONEq(t, request, string(body), "Bad request body")
+			_, err := io.WriteString(rw, string(readTestFile(t, "exampleEnvironment.json")))
+			assert.NoError(t, err)
+		} else if requestCounter == 1 {
+			assert.Equal(t, "/configurations/123", req.URL.Path, "Bad path")
+			assert.Equal(t, "PUT", req.Method, "Bad method")
 
-		rw.WriteHeader(401)
+			body, err := ioutil.ReadAll(req.Body)
+			assert.Nil(t, err, "Bad request body")
+			assert.JSONEq(t, request, string(body), "Bad request body")
+
+			rw.WriteHeader(401)
+		}
 		requestCounter++
 	}
 	opts := &CreateVMRequest{
@@ -127,9 +117,9 @@ func TestCreateVMError(t *testing.T) {
 	assert.Nil(t, createdVM, "Bad API method")
 	errorResponse := err.(*ErrorResponse)
 
-	assert.Nil(t, errorResponse.RetryAfter)
-	assert.Equal(t, 1, requestCounter)
 	assert.Equal(t, http.StatusUnauthorized, errorResponse.Response.StatusCode)
+
+	assert.Equal(t, 2, requestCounter)
 }
 
 func TestReadVM(t *testing.T) {
@@ -138,12 +128,16 @@ func TestReadVM(t *testing.T) {
 	skytap, hs, handler := createClient(t)
 	defer hs.Close()
 
+	requestCounter := 0
+
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		log.Printf("Request: (%d)\n", requestCounter)
 		assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
 		assert.Equal(t, "GET", req.Method, "Bad method")
 
 		_, err := io.WriteString(rw, response)
 		assert.NoError(t, err)
+		requestCounter++
 	}
 
 	vm, err := skytap.VMs.Get(context.Background(), "123", "456")
@@ -152,10 +146,11 @@ func TestReadVM(t *testing.T) {
 	var vmExpected VM
 	err = json.Unmarshal([]byte(response), &vmExpected)
 	assert.Equal(t, vmExpected, *vm, "Bad VM")
+
+	assert.Equal(t, 1, requestCounter)
 }
 
-// Not testing stopping and starting.
-func TestUpdateVM(t *testing.T) {
+func TestUpdateVMModifyDisks(t *testing.T) {
 	response := fmt.Sprintf(string(readTestFile(t, "VMResponse.json")), 456)
 
 	skytap, hs, handler := createClient(t)
@@ -164,143 +159,184 @@ func TestUpdateVM(t *testing.T) {
 	var vmCurrent VM
 	err := json.Unmarshal([]byte(response), &vmCurrent)
 	assert.NoError(t, err)
-	vmCurrent.Hardware.Disks = vmCurrent.Hardware.Disks[0:3]
 	bytesCurrent, err := json.Marshal(&vmCurrent)
 	assert.Nil(t, err, "Bad vm")
 
-	var vmDisksAdded VM
-	err = json.Unmarshal([]byte(response), &vmDisksAdded)
+	var vmOSSizeDiskAmendedDiskAdded VM
+	err = json.Unmarshal([]byte(response), &vmOSSizeDiskAmendedDiskAdded)
 	assert.NoError(t, err)
-	vmDisksAdded.Hardware.Disks = vmDisksAdded.Hardware.Disks[0:3]
-	vmDisksAdded.Hardware.Disks[0].Size = intToPtr(10000)
-	vmDisksAdded.Hardware.Disks = append(vmDisksAdded.Hardware.Disks, *createDisk("disk-20142867-38186761-scsi-0-3", nil))
-	bytesDisksAdded, err := json.Marshal(&vmDisksAdded)
+	vmOSSizeDiskAmendedDiskAdded.Hardware.Disks[0].Size = intToPtr(51201)
+	vmOSSizeDiskAmendedDiskAdded.Hardware.Disks[1].Size = intToPtr(51202)
+	vmOSSizeDiskAmendedDiskAdded.Hardware.Disks = append(vmOSSizeDiskAmendedDiskAdded.Hardware.Disks, *createDisk("disk-20142867-38186761-scsi-0-4", nil))
+	bytesDisksModified, err := json.Marshal(&vmOSSizeDiskAmendedDiskAdded)
 	assert.Nil(t, err, "Bad vm")
 
-	var vmNew VM
-	err = json.Unmarshal([]byte(response), &vmNew)
-	vmNew.Hardware.Disks = vmNew.Hardware.Disks[0:2]
-	vmNew.Hardware.Disks[1].Name = strToPtr("1")
-	vmNew.Hardware.Disks = append(vmNew.Hardware.Disks, *createDisk("disk-20142867-38186761-scsi-0-3", strToPtr("3")))
-	bytesNew, err := json.Marshal(&vmNew)
-	assert.Nil(t, err, "Bad vm")
-
-	first := true
-	second := true
-	third := true
-	fourth := true
-	fifth := true
-	sixth := true
-	seventh := true
+	requestCounter := 0
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
-		if first {
+		log.Printf("Request: (%d)\n", requestCounter)
+		if requestCounter == 0 {
 			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
 			assert.Equal(t, "GET", req.Method, "Bad method")
 
 			_, err := io.WriteString(rw, string(bytesCurrent))
 			assert.NoError(t, err)
-			first = false
-		} else if second {
+		} else if requestCounter == 1 {
+			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
+			assert.Equal(t, "GET", req.Method, "Bad method")
+
+			_, err := io.WriteString(rw, string(bytesCurrent))
+			assert.NoError(t, err)
+		} else if requestCounter == 2 {
 			// add the hardware changes
 			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
 			assert.Equal(t, "PUT", req.Method, "Bad method")
 
 			body, err := ioutil.ReadAll(req.Body)
 			assert.Nil(t, err, "Bad request body")
-			assert.JSONEq(t, `{"name": "updated vm", "hardware" : {"cpus": 12, "ram": 8192, "disks": {"new": [51200], "existing": {"disk-20142867-38186761-scsi-0-0" : {"id":"disk-20142867-38186761-scsi-0-0", "size": 10000}}}}}`, string(body), "Bad request body")
+			assert.JSONEq(t, `
+				{
+					"name": "test vm", "runstate":"stopped", 
+					"hardware" :{
+						"disks": {
+    						"new": [51200],
+							"existing": {
+								"disk-20142867-38186761-scsi-0-0" : {"id":"disk-20142867-38186761-scsi-0-0", "size": 51201},
+								"disk-20142867-38186761-scsi-0-1" : {"id":"disk-20142867-38186761-scsi-0-1", "size": 51202}
+							}
+						}
+					}
+				}`, string(body), "Bad request body")
 
-			_, err = io.WriteString(rw, string(bytesCurrent))
+			_, err = io.WriteString(rw, string(bytesDisksModified))
 			assert.NoError(t, err)
-			second = false
-		} else if third {
-			// wait until not busy
+		} else if requestCounter == 3 {
+			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
+			assert.Equal(t, "GET", req.Method, "Bad method")
+
+			_, err := io.WriteString(rw, string(bytesDisksModified))
+			assert.NoError(t, err)
+		} else if requestCounter == 4 {
+			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
+			assert.Equal(t, "GET", req.Method, "Bad method")
+
+			_, err := io.WriteString(rw, string(bytesDisksModified))
+			assert.NoError(t, err)
+		}
+		requestCounter++
+	}
+
+	opts := createVMUpdateStructure()
+	opts.Hardware.RAM = nil
+	opts.Hardware.CPUs = nil
+	vmUpdate, err := skytap.VMs.Update(context.Background(), "123", "456", opts)
+	assert.Nil(t, err, "Bad API method")
+
+	assert.Equal(t, 5, requestCounter)
+
+	vmOSSizeDiskAmendedDiskAdded.Hardware.Disks[1].Name = strToPtr("1")
+	vmOSSizeDiskAmendedDiskAdded.Hardware.Disks[2].Name = strToPtr("2")
+	vmOSSizeDiskAmendedDiskAdded.Hardware.Disks[3].Name = strToPtr("3")
+	vmOSSizeDiskAmendedDiskAdded.Hardware.Disks[4].Name = strToPtr("4")
+	assert.Equal(t, vmOSSizeDiskAmendedDiskAdded, *vmUpdate, "Bad vm")
+
+	disks := vmUpdate.Hardware.Disks
+	assert.Equal(t, 5, len(disks), "disk length")
+
+	assert.Nil(t, disks[0].Name, "os")
+}
+
+func TestUpdateVMDeleteDisk(t *testing.T) {
+	response := fmt.Sprintf(string(readTestFile(t, "VMResponse.json")), 456)
+
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+
+	var vmCurrent VM
+	err := json.Unmarshal([]byte(response), &vmCurrent)
+	assert.NoError(t, err)
+	bytesCurrent, err := json.Marshal(&vmCurrent)
+	assert.Nil(t, err, "Bad vm")
+
+	var vmDisksRemoved VM
+	err = json.Unmarshal([]byte(response), &vmDisksRemoved)
+	vmDisksRemoved.Hardware.Disks = vmDisksRemoved.Hardware.Disks[0:2]
+	bytesDisksModified, err := json.Marshal(&vmDisksRemoved)
+	assert.Nil(t, err, "Bad vm")
+
+	requestCounter := 0
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		log.Printf("Request: (%d)\n", requestCounter)
+		if requestCounter == 0 {
 			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
 			assert.Equal(t, "GET", req.Method, "Bad method")
 
 			_, err := io.WriteString(rw, string(bytesCurrent))
 			assert.NoError(t, err)
-			third = false
-		} else if fourth {
-			// the last retry - gives the expected count (6 currently)
+		} else if requestCounter == 1 {
 			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
 			assert.Equal(t, "GET", req.Method, "Bad method")
 
-			_, err := io.WriteString(rw, string(bytesDisksAdded))
+			_, err := io.WriteString(rw, string(bytesCurrent))
 			assert.NoError(t, err)
-			fourth = false
-		} else if fifth {
+		} else if requestCounter == 2 {
 			// delete the disks
 			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
 			assert.Equal(t, "PUT", req.Method, "Bad method")
 
 			body, err := ioutil.ReadAll(req.Body)
 			assert.Nil(t, err, "Bad request body")
-			assert.JSONEq(t, `{"name": "updated vm", "hardware" : {"disks": {"existing": {"disk-20142867-38186761-scsi-0-2" : {"id":"disk-20142867-38186761-scsi-0-2", "size": null}}}}}`, string(body), "Bad request body")
+			assert.JSONEq(t, `
+				{
+					"hardware" : {
+						"disks": {
+							"existing": {
+								"disk-20142867-38186761-scsi-0-2" : {"id":"disk-20142867-38186761-scsi-0-2", "size": null},
+								"disk-20142867-38186761-scsi-0-3" : {"id":"disk-20142867-38186761-scsi-0-3", "size": null}
+							}
+						}
+					}
+				}`, string(body), "Bad request body")
 
-			_, err = io.WriteString(rw, string(bytesDisksAdded))
+			_, err = io.WriteString(rw, string(bytesDisksModified))
 			assert.NoError(t, err)
-			fifth = false
-		} else if sixth {
-			// wait until not busy
+		} else if requestCounter == 3 {
 			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
 			assert.Equal(t, "GET", req.Method, "Bad method")
 
-			_, err := io.WriteString(rw, string(bytesDisksAdded))
+			_, err := io.WriteString(rw, string(bytesDisksModified))
 			assert.NoError(t, err)
-			sixth = false
-		} else if seventh {
-			// the last retry - gives the expected count (4 currently)
+		} else if requestCounter == 4 {
 			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
 			assert.Equal(t, "GET", req.Method, "Bad method")
 
-			_, err := io.WriteString(rw, string(bytesNew))
+			_, err := io.WriteString(rw, string(bytesDisksModified))
 			assert.NoError(t, err)
-			fourth = false
-		} else {
-			seventh = false
 		}
+		requestCounter++
 	}
 
-	diskIdentification := make([]DiskIdentification, 2)
-	diskIdentification[0] = DiskIdentification{ID: strToPtr("disk-20142867-38186761-scsi-0-1"),
-		Size: intToPtr(51200),
-		Name: strToPtr("1")}
-	diskIdentification[1] = DiskIdentification{ID: nil,
-		Size: intToPtr(51200),
-		Name: strToPtr("3")}
-
-	opts := &UpdateVMRequest{
-		Name: strToPtr("updated vm"),
-		Hardware: &UpdateHardware{
-			CPUs: intToPtr(12),
-			RAM:  intToPtr(8192),
-			UpdateDisks: &UpdateDisks{
-				NewDisks:           []int{51200},
-				DiskIdentification: diskIdentification,
-				OSSize:             intToPtr(10000),
-			},
-		},
-	}
+	opts := createVMUpdateStructure()
+	opts.Name = nil
+	opts.Runstate = nil
+	opts.Hardware.RAM = nil
+	opts.Hardware.CPUs = nil
+	opts.Hardware.UpdateDisks.NewDisks = nil
+	opts.Hardware.UpdateDisks.OSSize = nil
+	opts.Hardware.UpdateDisks.DiskIdentification = opts.Hardware.UpdateDisks.DiskIdentification[0:1]
+	opts.Hardware.UpdateDisks.DiskIdentification[0].Size = intToPtr(51200)
+	delete(opts.Hardware.UpdateDisks.ExistingDisks, "disk-20142867-38186761-scsi-0-1")
+	delete(opts.Hardware.UpdateDisks.ExistingDisks, "disk-20142867-38186761-scsi-0-2")
+	delete(opts.Hardware.UpdateDisks.ExistingDisks, "disk-20142867-38186761-scsi-0-3")
 	vmUpdate, err := skytap.VMs.Update(context.Background(), "123", "456", opts)
 	assert.Nil(t, err, "Bad API method")
 
-	assert.False(t, first)
-	assert.False(t, second)
-	assert.False(t, third)
-	assert.False(t, fourth)
-	assert.False(t, fifth)
-	assert.False(t, sixth)
-	assert.True(t, seventh)
+	assert.Equal(t, 5, requestCounter)
 
-	assert.Equal(t, vmNew, *vmUpdate, "Bad vm")
+	vmDisksRemoved.Hardware.Disks[1].Name = strToPtr("1")
+	assert.Equal(t, vmDisksRemoved, *vmUpdate, "Bad vm")
 
 	disks := vmUpdate.Hardware.Disks
-	assert.Equal(t, 3, len(disks), "disk length")
-
-	assert.Nil(t, disks[0].Name, "os")
-	assert.Equal(t, "1", *disks[1].Name, "disk name")
-	assert.Equal(t, "3", *disks[2].Name, "disk name")
-
+	assert.Equal(t, 2, len(disks), "disk length")
 }
 
 // Updating cpu and ram is possible on their own
@@ -311,53 +347,42 @@ func TestUpdateCPURAMVM(t *testing.T) {
 	skytap, hs, handler := createClient(t)
 	defer hs.Close()
 
-	var vmRunning VM
-	err := json.Unmarshal([]byte(response), &vmRunning)
+	var vmExisting VM
+	err := json.Unmarshal([]byte(response), &vmExisting)
 	assert.NoError(t, err)
-	vmRunning.Runstate = vmRunStateToPtr(VMRunstateRunning)
-	bytesRunning, err := json.Marshal(&vmRunning)
+	vmExisting.Runstate = vmRunStateToPtr(VMRunstateRunning)
+	bytesExisting, err := json.Marshal(&vmExisting)
 	assert.Nil(t, err, "Bad vm")
 
-	var vm VM
-	err = json.Unmarshal([]byte(response), &vm)
+	var vmUpdated VM
+	err = json.Unmarshal([]byte(response), &vmUpdated)
 	assert.NoError(t, err)
-	*vm.Name = "updated vm"
-	*vm.Hardware.CPUs = 12
-	*vm.Hardware.RAM = 8192
-	bytes, err := json.Marshal(&vm)
+	*vmUpdated.Name = "updated vm"
+	*vmUpdated.Hardware.CPUs = 6
+	*vmUpdated.Hardware.RAM = 4096
+	vmUpdated.Runstate = vmRunStateToPtr(VMRunstateStopped)
+	bytes, err := json.Marshal(&vmUpdated)
 	assert.Nil(t, err, "Bad vm")
 
-	var vmEnriched VM
-	err = json.Unmarshal([]byte(response), &vmEnriched)
-	assert.NoError(t, err)
-	*vmEnriched.Name = "updated vm"
-	*vmEnriched.Hardware.CPUs = 12
-	*vmEnriched.Hardware.RAM = 8192
-	vmEnriched.Hardware.Disks[1].Name = strToPtr("1")
-	vmEnriched.Hardware.Disks[2].Name = strToPtr("2")
-	vmEnriched.Hardware.Disks[3].Name = strToPtr("3")
-	vmEnriched.Runstate = vmRunStateToPtr(VMRunstateRunning)
-	bytesEnriched, err := json.Marshal(&vmEnriched)
-	assert.Nil(t, err, "Bad vm")
+	vmUpdated.Runstate = vmRunStateToPtr(VMRunstateRunning)
+	bytesRunning, err := json.Marshal(&vmUpdated)
 
-	first := true
-	second := true
-	third := true
-	fourth := true
-	fifth := true
-	sixth := true
-	seventh := true
-	eighth := true
+	requestCounter := 0
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
-		if first {
-			// get vm
+		log.Printf("Request: (%d)\n", requestCounter)
+		if requestCounter == 0 {
 			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
 			assert.Equal(t, "GET", req.Method, "Bad method")
 
-			_, err := io.WriteString(rw, string(bytesRunning))
+			_, err := io.WriteString(rw, string(bytesExisting))
 			assert.NoError(t, err)
-			first = false
-		} else if second {
+		} else if requestCounter == 1 {
+			assert.Equal(t, "/v2/configurations/123", req.URL.Path, "Bad path")
+			assert.Equal(t, "GET", req.Method, "Bad method")
+
+			_, err := io.WriteString(rw, string(readTestFile(t, "exampleEnvironment.json")))
+			assert.NoError(t, err)
+		} else if requestCounter == 2 {
 			// turn to stopped
 			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
 			assert.Equal(t, "PUT", req.Method, "Bad method")
@@ -368,45 +393,49 @@ func TestUpdateCPURAMVM(t *testing.T) {
 
 			_, err = io.WriteString(rw, response)
 			assert.NoError(t, err)
-			second = false
-		} else if third {
-			// get vm to confirm it is stopped
+		} else if requestCounter == 3 { // confirm vm in correct state, i.e. not busy
 			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
-			assert.Equal(t, "GET", req.Method, "Bad method")
+			assert.Equal(t, http.MethodGet, req.Method, "Bad method")
 
 			_, err := io.WriteString(rw, response)
 			assert.NoError(t, err)
-			third = false
-		} else if fourth {
+		} else if requestCounter == 4 { // confirm vm in correct state, i.e. not busy
+			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
+			assert.Equal(t, http.MethodGet, req.Method, "Bad method")
+
+			_, err := io.WriteString(rw, response)
+			assert.NoError(t, err)
+		} else if requestCounter == 5 {
 			// update
 			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
 			assert.Equal(t, "PUT", req.Method, "Bad method")
 
 			body, err := ioutil.ReadAll(req.Body)
 			assert.Nil(t, err, "Bad request body")
-			assert.JSONEq(t, `{"name": "updated vm", "hardware" : {"cpus": 12, "ram": 8192}}`, string(body), "Bad request body")
+			assert.JSONEq(t, `{"name": "updated vm", "hardware" : {"cpus": 6, "ram": 4096}}`, string(body), "Bad request body")
 
 			_, err = io.WriteString(rw, string(bytes))
 			assert.NoError(t, err)
-			fourth = false
-		} else if fifth {
-			// wait until not busy
+		} else if requestCounter == 6 {
 			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
 			assert.Equal(t, "GET", req.Method, "Bad method")
 
 			_, err := io.WriteString(rw, string(bytes))
 			assert.NoError(t, err)
-			fifth = false
-		} else if sixth {
-			// get updated vm
+		} else if requestCounter == 7 {
 			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
 			assert.Equal(t, "GET", req.Method, "Bad method")
 
-			_, err := io.WriteString(rw, string(bytesEnriched))
+			_, err := io.WriteString(rw, string(bytes))
 			assert.NoError(t, err)
-			sixth = false
-		} else if seventh {
-			// switch back to running
+		} else if requestCounter == 8 {
+			assert.Equal(t, "/v2/configurations/123", req.URL.Path, "Bad path")
+			assert.Equal(t, "GET", req.Method, "Bad method")
+
+			_, err := io.WriteString(rw, string(readTestFile(t, "exampleEnvironment.json")))
+			assert.NoError(t, err)
+		} else if requestCounter == 9 {
+			// turn to running
 			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
 			assert.Equal(t, "PUT", req.Method, "Bad method")
 
@@ -414,45 +443,43 @@ func TestUpdateCPURAMVM(t *testing.T) {
 			assert.Nil(t, err, "Bad request body")
 			assert.JSONEq(t, `{"runstate":"running"}`, string(body), "Bad request body")
 
+			_, err = io.WriteString(rw, string(bytes))
+			assert.NoError(t, err)
+		} else if requestCounter == 10 {
+			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
+			assert.Equal(t, "GET", req.Method, "Bad method")
+
 			_, err = io.WriteString(rw, string(bytesRunning))
 			assert.NoError(t, err)
-			seventh = false
-		} else {
-			// dont bother waiting for vm to be running
-			eighth = false
+		} else if requestCounter == 11 {
+			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
+			assert.Equal(t, "GET", req.Method, "Bad method")
+
+			_, err = io.WriteString(rw, string(bytesRunning))
+			assert.NoError(t, err)
 		}
+		requestCounter++
 	}
 
-	diskIDs := []DiskIdentification{
-		{strToPtr("disk-20142867-38186761-scsi-0-1"), intToPtr(51200), strToPtr("1")},
-		{strToPtr("disk-20142867-38186761-scsi-0-2"), intToPtr(51200), strToPtr("2")},
-		{strToPtr("disk-20142867-38186761-scsi-0-3"), intToPtr(51200), strToPtr("3")},
-	}
-
-	opts := &UpdateVMRequest{
-		Name: strToPtr(*vm.Name),
-		Hardware: &UpdateHardware{
-			CPUs: intToPtr(*vm.Hardware.CPUs),
-			RAM:  intToPtr(*vm.Hardware.RAM),
-			UpdateDisks: &UpdateDisks{
-				DiskIdentification: diskIDs,
-			},
-		},
-	}
-	vmUpdate, err := skytap.VMs.Update(context.Background(), "123", "456", opts)
+	opts := createVMUpdateStructure()
+	opts.Name = strToPtr("updated vm")
+	opts.Runstate = nil
+	opts.Hardware.RAM = intToPtr(4096)
+	opts.Hardware.CPUs = intToPtr(6)
+	opts.Hardware.UpdateDisks.NewDisks = nil
+	opts.Hardware.UpdateDisks.ExistingDisks = nil
+	opts.Hardware.UpdateDisks.OSSize = nil
+	opts.Hardware.UpdateDisks.DiskIdentification[0].Size = intToPtr(51200)
+	vm, err := skytap.VMs.Update(context.Background(), "123", "456", opts)
 	assert.Nil(t, err, "Bad API method")
 
-	assert.False(t, first)
-	assert.False(t, second)
-	assert.False(t, third)
-	assert.False(t, fourth)
-	assert.False(t, fifth)
-	assert.False(t, sixth)
-	assert.False(t, seventh)
-	assert.True(t, eighth)
+	assert.Equal(t, 12, requestCounter)
 
-	assert.Equal(t, vmEnriched, *vmUpdate, "Bad vm")
-	assert.Equal(t, VMRunstateRunning, *vmUpdate.Runstate, "running")
+	vmUpdated.Hardware.Disks[1].Name = strToPtr("1")
+	vmUpdated.Hardware.Disks[2].Name = strToPtr("2")
+	vmUpdated.Hardware.Disks[3].Name = strToPtr("3")
+	assert.Equal(t, vmUpdated, *vm, "Bad vm")
+	assert.Equal(t, VMRunstateRunning, *vm.Runstate, "running")
 }
 
 // Updating runstate can only be done on its own
@@ -470,16 +497,34 @@ func TestUpdateRunstateVM(t *testing.T) {
 	bytes, err := json.Marshal(&vm)
 	assert.Nil(t, err, "Bad vm")
 
+	requestCounter := 0
+
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
-		assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
-		assert.Equal(t, "PUT", req.Method, "Bad method")
+		log.Printf("Request: (%d)\n", requestCounter)
+		if requestCounter == 0 {
+			assert.Equal(t, "/v2/configurations/123", req.URL.Path, "Bad path")
+			assert.Equal(t, "GET", req.Method, "Bad method")
 
-		body, err := ioutil.ReadAll(req.Body)
-		assert.Nil(t, err, "Bad request body")
-		assert.JSONEq(t, `{"runstate":"running"}`, string(body), "Bad request body")
+			_, err := io.WriteString(rw, string(readTestFile(t, "exampleEnvironment.json")))
+			assert.NoError(t, err)
+		} else if requestCounter == 1 {
+			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
+			assert.Equal(t, "PUT", req.Method, "Bad method")
 
-		_, err = io.WriteString(rw, string(bytes))
-		assert.NoError(t, err)
+			body, err := ioutil.ReadAll(req.Body)
+			assert.Nil(t, err, "Bad request body")
+			assert.JSONEq(t, `{"runstate":"running"}`, string(body), "Bad request body")
+
+			_, err = io.WriteString(rw, string(bytes))
+			assert.NoError(t, err)
+		} else if requestCounter == 2 {
+			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
+			assert.Equal(t, "GET", req.Method, "Bad method")
+
+			_, err = io.WriteString(rw, string(bytes))
+			assert.NoError(t, err)
+		}
+		requestCounter++
 	}
 
 	opts := &UpdateVMRequest{
@@ -490,19 +535,35 @@ func TestUpdateRunstateVM(t *testing.T) {
 
 	assert.Equal(t, vm, *vmUpdate, "Bad vm")
 	assert.Equal(t, VMRunstateRunning, *vmUpdate.Runstate, "running")
+
+	assert.Equal(t, 3, requestCounter)
 }
 
 func TestDeleteVM(t *testing.T) {
 	skytap, hs, handler := createClient(t)
 	defer hs.Close()
 
+	requestCounter := 0
+
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
-		assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
-		assert.Equal(t, "DELETE", req.Method, "Bad method")
+		log.Printf("Request: (%d)\n", requestCounter)
+		if requestCounter == 0 {
+			assert.Equal(t, "/v2/configurations/123", req.URL.Path, "Bad path")
+			assert.Equal(t, http.MethodGet, req.Method, "Bad method")
+
+			_, err := io.WriteString(rw, string(readTestFile(t, "exampleEnvironment.json")))
+			assert.NoError(t, err)
+		} else if requestCounter == 1 {
+			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
+			assert.Equal(t, "DELETE", req.Method, "Bad method")
+		}
+		requestCounter++
 	}
 
 	err := skytap.VMs.Delete(context.Background(), "123", "456")
 	assert.Nil(t, err, "Bad API method")
+
+	assert.Equal(t, 2, requestCounter)
 }
 
 func TestListVMs(t *testing.T) {
@@ -511,12 +572,16 @@ func TestListVMs(t *testing.T) {
 	skytap, hs, handler := createClient(t)
 	defer hs.Close()
 
+	requestCounter := 0
+
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		log.Printf("Request: (%d)\n", requestCounter)
 		assert.Equal(t, "/v2/configurations/123/vms", req.URL.Path, "Bad path")
 		assert.Equal(t, "GET", req.Method, "Bad method")
 
 		_, err := io.WriteString(rw, fmt.Sprintf(`[%+v]`, response))
 		assert.NoError(t, err)
+		requestCounter++
 	}
 
 	result, err := skytap.VMs.List(context.Background(), "123")
@@ -530,6 +595,8 @@ func TestListVMs(t *testing.T) {
 		}
 	}
 	assert.True(t, found, "VM not found")
+
+	assert.Equal(t, 1, requestCounter)
 }
 
 func readTestFile(t *testing.T, name string) []byte {
@@ -705,8 +772,263 @@ func TestOSDiskResize(t *testing.T) {
 	addOSDiskResize(nil, &vm, updates)
 	assert.Equal(t, 1, len(updates))
 
-	addOSDiskResize(intToPtr(10000), &vm, updates)
+	addOSDiskResize(intToPtr(51203), &vm, updates)
 	assert.Equal(t, 2, len(updates))
 	assert.Equal(t, ExistingDisk{ID: strToPtr("disk-20142867-38186761-scsi-0-0"),
-		Size: intToPtr(10000)}, updates["disk-20142867-38186761-scsi-0-0"])
+		Size: intToPtr(51203)}, updates["disk-20142867-38186761-scsi-0-0"])
+}
+
+func TestCompareVMCreateTrue(t *testing.T) {
+	exampleVM := fmt.Sprintf(string(readTestFile(t, "createVMResponse.json")), 123, 123, 456)
+
+	var env Environment
+	err := json.Unmarshal([]byte(exampleVM), &env)
+	env.Runstate = environmentRunStateToPtr(EnvironmentRunstateStopped)
+	assert.NoError(t, err)
+	opts := CreateVMRequest{
+		TemplateID: "42",
+		VMID:       "43",
+	}
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		bytes, err := json.Marshal(&env)
+		assert.Nil(t, err, "Bad vm")
+		_, err = io.WriteString(rw, string(bytes))
+		assert.NoError(t, err)
+	}
+	state := vmRunStateNotBusy("123", "456")
+	state.diskIdentification = buildDiskidentification()
+	message, ok := opts.compareResponse(context.Background(), skytap, &env, state)
+	assert.True(t, ok)
+	assert.Equal(t, "", message)
+}
+
+func TestCompareVMCreateFalse(t *testing.T) {
+	exampleVM := fmt.Sprintf(string(readTestFile(t, "createVMResponse.json")), 123, 123, 456)
+
+	var env Environment
+	err := json.Unmarshal([]byte(exampleVM), &env)
+	assert.NoError(t, err)
+	opts := CreateVMRequest{
+		TemplateID: "42",
+		VMID:       "43",
+	}
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		_, err := io.WriteString(rw, exampleVM)
+		assert.NoError(t, err)
+	}
+	state := vmRunStateNotBusy("123", "456")
+	state.diskIdentification = buildDiskidentification()
+	message, ok := opts.compareResponse(context.Background(), skytap, &env, state)
+	assert.False(t, ok)
+	assert.Equal(t, "VM environment not ready", message)
+}
+
+func TestCompareVMUpdateRunStateTrue(t *testing.T) {
+	exampleVM := fmt.Sprintf(string(readTestFile(t, "VMResponse.json")), 456)
+
+	var vm VM
+	err := json.Unmarshal([]byte(exampleVM), &vm)
+	assert.NoError(t, err)
+	opts := &UpdateVMRequest{
+		Runstate: vmRunStateToPtr(VMRunstateStopped),
+	}
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		_, err := io.WriteString(rw, exampleVM)
+		assert.NoError(t, err)
+	}
+	state := vmRunStateNotBusy("123", "456")
+	state.diskIdentification = buildDiskidentification()
+	message, ok := opts.compareResponse(context.Background(), skytap, &vm, state)
+	assert.True(t, ok)
+	assert.Equal(t, "", message)
+}
+
+func TestCompareVMUpdateRunStateFalse(t *testing.T) {
+	exampleVM := fmt.Sprintf(string(readTestFile(t, "VMResponse.json")), 456)
+
+	var vm VM
+	err := json.Unmarshal([]byte(exampleVM), &vm)
+	vm.Runstate = vmRunStateToPtr(VMRunstateBusy)
+	assert.NoError(t, err)
+	opts := &UpdateVMRequest{
+		Runstate: vmRunStateToPtr(VMRunstateStopped),
+	}
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		bytes, err := json.Marshal(&vm)
+		assert.Nil(t, err, "Bad vm")
+		_, err = io.WriteString(rw, string(bytes))
+		assert.NoError(t, err)
+	}
+	state := vmRunStateNotBusy("123", "456")
+	state.diskIdentification = buildDiskidentification()
+	message, ok := opts.compareResponse(context.Background(), skytap, &vm, state)
+	assert.False(t, ok)
+	assert.Equal(t, "VM not ready", message)
+}
+
+func TestCompareVMUpdateTrue(t *testing.T) {
+	exampleVM := fmt.Sprintf(string(readTestFile(t, "VMResponse.json")), 456)
+
+	var vm VM
+	err := json.Unmarshal([]byte(exampleVM), &vm)
+	assert.NoError(t, err)
+	vm.Hardware.Disks = append(vm.Hardware.Disks, Disk{
+		ID:   strToPtr("disk-20142867-38186761-scsi-0-4"),
+		Size: intToPtr(51200),
+	})
+	vm.Hardware.Disks[0].Size = intToPtr(51200)
+
+	existingDisks := make(map[string]ExistingDisk)
+	existingDisks["disk-20142867-38186761-scsi-0-1"] = ExistingDisk{
+		ID:   strToPtr("disk-20142867-38186761-scsi-0-1"),
+		Size: intToPtr(51200),
+	}
+	existingDisks["disk-20142867-38186761-scsi-0-2"] = ExistingDisk{
+		ID:   strToPtr("disk-20142867-38186761-scsi-0-2"),
+		Size: intToPtr(51200),
+	}
+	existingDisks["disk-20142867-38186761-scsi-0-3"] = ExistingDisk{
+		ID:   strToPtr("disk-20142867-38186761-scsi-0-3"),
+		Size: intToPtr(51200),
+	}
+	opts := &UpdateVMRequest{
+		Name:     strToPtr("test vm"),
+		Runstate: vmRunStateToPtr(VMRunstateStopped),
+		Hardware: &UpdateHardware{
+			CPUs: intToPtr(12),
+			RAM:  intToPtr(8192),
+			UpdateDisks: &UpdateDisks{
+				NewDisks:      []int{51200},
+				ExistingDisks: existingDisks,
+			},
+		},
+	}
+
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		bytes, err := json.Marshal(&vm)
+		assert.Nil(t, err, "Bad vm")
+		_, err = io.WriteString(rw, string(bytes))
+		assert.NoError(t, err)
+	}
+	state := vmRunStateNotBusy("123", "456")
+	state.diskIdentification = buildDiskidentification()
+	message, ok := opts.compareResponse(context.Background(), skytap, &vm, state)
+	assert.True(t, ok)
+	assert.Equal(t, "", message)
+}
+
+func TestCompareVMUpdateFalse(t *testing.T) {
+	exampleVM := fmt.Sprintf(string(readTestFile(t, "VMResponse.json")), 456)
+
+	var vm VM
+	vm.Runstate = vmRunStateToPtr(VMRunstateBusy)
+	err := json.Unmarshal([]byte(exampleVM), &vm)
+	assert.NoError(t, err)
+	opts := createVMUpdateStructure()
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		bytes, err := json.Marshal(&vm)
+		assert.Nil(t, err, "Bad vm")
+		_, err = io.WriteString(rw, string(bytes))
+		assert.NoError(t, err)
+	}
+	state := vmRunStateNotBusy("123", "456")
+	state.diskIdentification = buildDiskidentification()
+	message, ok := opts.compareResponse(context.Background(), skytap, &vm, state)
+	assert.False(t, ok)
+	assert.Equal(t, "VM not ready", message)
+}
+
+func TestCompareDiskStructureNoDisks(t *testing.T) {
+	exampleEnvironment := fmt.Sprintf(string(readTestFile(t, "createVMResponse.json")), 123, 123, 456)
+	exampleVM := fmt.Sprintf(string(readTestFile(t, "VMResponse.json")), 456)
+
+	var env Environment
+	err := json.Unmarshal([]byte(exampleEnvironment), &env)
+	assert.NoError(t, err)
+	vm := env.VMs[1]
+	vm.Hardware.Disks = nil
+	opts := createVMUpdateStructure()
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		_, err := io.WriteString(rw, exampleVM)
+		assert.NoError(t, err)
+	}
+	state := vmRunStateNotBusy("123", "456")
+	state.diskIdentification = buildDiskidentification()
+	message, ok := opts.compareResponse(context.Background(), skytap, &vm, state)
+	assert.False(t, ok)
+	assert.Equal(t, "VM not ready", message)
+}
+
+func createVMUpdateStructure() *UpdateVMRequest {
+	diskIdentification := buildDiskidentification()
+	diskIdentification[0] = DiskIdentification{ID: strToPtr("disk-20142867-38186761-scsi-0-1"),
+		Size: intToPtr(51202),
+		Name: strToPtr("1")}
+
+	existingDisks := make(map[string]ExistingDisk)
+	existingDisks["disk-20142867-38186761-scsi-0-1"] = ExistingDisk{
+		ID:   strToPtr("disk-20142867-38186761-scsi-0-1"),
+		Size: intToPtr(51200),
+	}
+	existingDisks["disk-20142867-38186761-scsi-0-2"] = ExistingDisk{
+		ID:   strToPtr("disk-20142867-38186761-scsi-0-2"),
+		Size: intToPtr(51200),
+	}
+	existingDisks["disk-20142867-38186761-scsi-0-3"] = ExistingDisk{
+		ID:   strToPtr("disk-20142867-38186761-scsi-0-3"),
+		Size: intToPtr(51200),
+	}
+	opts := &UpdateVMRequest{
+		Name:     strToPtr("test vm"),
+		Runstate: vmRunStateToPtr(VMRunstateStopped),
+		Hardware: &UpdateHardware{
+			CPUs: intToPtr(12),
+			RAM:  intToPtr(8192),
+			UpdateDisks: &UpdateDisks{
+				NewDisks:           []int{51200},
+				ExistingDisks:      existingDisks,
+				DiskIdentification: diskIdentification,
+				OSSize:             intToPtr(51201),
+			},
+		},
+	}
+	return opts
+}
+
+func buildDiskidentification() []DiskIdentification {
+	diskIdentification := make([]DiskIdentification, 4)
+	diskIdentification[0] = DiskIdentification{ID: strToPtr("disk-20142867-38186761-scsi-0-1"),
+		Size: intToPtr(51200),
+		Name: strToPtr("1")}
+	diskIdentification[1] = DiskIdentification{ID: strToPtr("disk-20142867-38186761-scsi-0-2"),
+		Size: intToPtr(51200),
+		Name: strToPtr("2")}
+	diskIdentification[2] = DiskIdentification{ID: strToPtr("disk-20142867-38186761-scsi-0-3"),
+		Size: intToPtr(51200),
+		Name: strToPtr("3")}
+	diskIdentification[3] = DiskIdentification{ID: nil,
+		Size: intToPtr(51200),
+		Name: strToPtr("4")}
+	return diskIdentification
 }

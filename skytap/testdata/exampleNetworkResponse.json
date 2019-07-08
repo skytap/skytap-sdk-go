@@ -1,0 +1,17 @@
+{
+    "id": "%d",
+    "url": "https://cloud.skytap.com/v2/configurations/%d/networks/%d",
+    "name": "test network",
+    "network_type": "automatic",
+    "subnet": "10.0.2.0/24",
+    "subnet_addr": "10.0.2.0",
+    "subnet_size": 24,
+    "gateway": "10.0.2.254",
+    "primary_nameserver": null,
+    "secondary_nameserver": null,
+    "region": "US-West",
+    "domain": "sampledomain.com",
+    "vpn_attachments": [],
+    "tunnelable": true,
+    "tunnels": []
+}
