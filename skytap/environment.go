@@ -402,19 +402,19 @@ func (payload *UpdateEnvironmentRequest) string() string {
 	if payload.Runstate != nil {
 		runstate = string(*payload.Runstate)
 	}
-	s := fmt.Sprintf("%s%s%s%s%s%s%s%s%s%s",
-		name,
-		description,
-		owner,
-		outboundTraffic,
-		routable,
-		suspendOnIdle,
-		suspendAtTime,
-		shutdownOnIdle,
-		shutdownAtTime,
-		runstate)
-	log.Printf("[DEBUG] SDK environment payload (%s)\n", s)
-	return s
+	var sb strings.Builder
+	sb.WriteString(name)
+	sb.WriteString(description)
+	sb.WriteString(owner)
+	sb.WriteString(outboundTraffic)
+	sb.WriteString(routable)
+	sb.WriteString(suspendOnIdle)
+	sb.WriteString(suspendAtTime)
+	sb.WriteString(shutdownOnIdle)
+	sb.WriteString(shutdownAtTime)
+	sb.WriteString(runstate)
+	log.Printf("[DEBUG] SDK environment payload (%s)\n", sb.String())
+	return sb.String()
 }
 
 func logEnvironmentStatus(env *Environment) {
