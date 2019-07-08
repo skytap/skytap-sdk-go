@@ -16,6 +16,10 @@ const (
 )
 
 func createClient(t *testing.T) (*Client, *httptest.Server, *func(rw http.ResponseWriter, req *http.Request)) {
+	return createClientWithUserAgent(t, DefaultUserAgent)
+}
+
+func createClientWithUserAgent(t *testing.T, userAgent string) (*Client, *httptest.Server, *func(rw http.ResponseWriter, req *http.Request)) {
 	handler := http.NotFound
 	hs := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		handler(rw, req)
@@ -24,7 +28,7 @@ func createClient(t *testing.T) (*Client, *httptest.Server, *func(rw http.Respon
 	var user = "SKYTAP_USER"
 	var token = "SKYTAP_ACCESS_TOKEN"
 
-	settings := NewDefaultSettings(WithBaseURL(hs.URL), WithCredentialsProvider(NewAPITokenCredentials(user, token)))
+	settings := NewDefaultSettings(WithBaseURL(hs.URL), WithCredentialsProvider(NewAPITokenCredentials(user, token)), WithUserAgent(userAgent))
 
 	skytap, err := NewClient(settings)
 	skytap.retryCount = testingRetryCount
@@ -189,4 +193,22 @@ func TestRetryWith50xResolves(t *testing.T) {
 	_, err := skytap.Projects.Get(context.Background(), 12345)
 
 	assert.Nil(t, err)
+}
+
+func TestWithUserAgent(t *testing.T) {
+	userAgent := "tf-1.0.0"
+	skytap, hs, handler := createClientWithUserAgent(t, userAgent)
+
+	defer hs.Close()
+
+	userAgentActual := ""
+
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		userAgentActual = req.Header.Get("User-Agent")
+		rw.WriteHeader(200)
+	}
+	_, err := skytap.Projects.Get(context.Background(), 12345)
+
+	assert.Nil(t, err)
+	assert.Equal(t, userAgent, userAgentActual)
 }
