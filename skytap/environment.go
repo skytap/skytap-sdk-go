@@ -245,7 +245,7 @@ func (s *EnvironmentsServiceClient) Create(ctx context.Context, opts *CreateEnvi
 		SuspendAtTime:   opts.SuspendAtTime,
 		ShutdownOnIdle:  opts.ShutdownOnIdle,
 		ShutdownAtTime:  opts.ShutdownAtTime,
-		Runstate:        runstate,
+		Runstate:        runstate, // we are expecting the environment to start its VMs after creation
 	}
 
 	// update environment after creation to establish the resource information.
