@@ -315,7 +315,7 @@ func (payload *UpdateEnvironmentRequest) compareResponse(ctx context.Context, c 
 			return requestNotAsExpected, false
 		}
 		logEnvironmentStatus(env)
-		actual := payload.buildUpdateRequestFromVM(env)
+		actual := payload.buildComparison(env)
 		if payload.string() == actual.string() {
 			return "", true
 		}
@@ -325,7 +325,7 @@ func (payload *UpdateEnvironmentRequest) compareResponse(ctx context.Context, c 
 	return requestNotAsExpected, false
 }
 
-func (payload *UpdateEnvironmentRequest) buildUpdateRequestFromVM(env *Environment) UpdateEnvironmentRequest {
+func (payload *UpdateEnvironmentRequest) buildComparison(env *Environment) UpdateEnvironmentRequest {
 	actual := UpdateEnvironmentRequest{}
 	if payload.Name != nil {
 		actual.Name = env.Name
