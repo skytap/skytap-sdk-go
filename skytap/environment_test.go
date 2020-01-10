@@ -452,8 +452,8 @@ func TestEnvironmentDeleteTag(t *testing.T) {
 		if req.URL.Path == "/v2/configurations/456/tags/42.json" && req.Method == "DELETE" {
 			tagDeleted = true
 		}
-
 	}
+
 	err := skytap.Environments.DeleteTag(context.Background(), "456", "42")
 	assert.Nil(t, err)
 	assert.True(t, tagDeleted)
