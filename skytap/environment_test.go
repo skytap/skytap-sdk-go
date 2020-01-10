@@ -443,6 +443,24 @@ func TestEnvironmentAddTag(t *testing.T) {
 	assert.True(t, tagsCreated)
 }
 
+func TestEnvironmentEmptyListOfTagHasNoEffect(t *testing.T) {
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+
+	tagsCreated := false
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		if req.URL.Path == "/v2/configurations/456/tags.json" && req.Method == "PUT" {
+			tagsCreated = true
+		}
+	}
+
+	tags := make([]*CreateTagRequest, 0)
+	err := skytap.Environments.CreateTags(context.Background(), "456", tags)
+
+	assert.Nil(t, err)
+	assert.False(t, tagsCreated)
+}
+
 func TestEnvironmentDeleteTag(t *testing.T) {
 	skytap, hs, handler := createClient(t)
 	defer hs.Close()
