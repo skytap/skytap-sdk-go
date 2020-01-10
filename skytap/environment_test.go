@@ -373,3 +373,106 @@ func TestConfirmNilRoutableAlwaysFalse(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, "", message)
 }
+
+func TestConfirmCreateEnvironmentCreateTags(t *testing.T) {
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+
+	environmentCreated := false
+	environmentUpdated := false
+	tagsCreated := false
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		if req.URL.Path == "/configurations" && req.Method == "POST" { // create
+			_, err := io.WriteString(rw, `{"id": "456"}`)
+			assert.NoError(t, err)
+			environmentCreated = true
+		}
+		if req.URL.Path == "/v2/configurations/456" && req.Method == "GET" { // get
+			io.WriteString(rw, string(readTestFile(t, "exampleEnvironment.json")))
+		}
+		if req.URL.Path == "/v2/configurations/456" && req.Method == "PUT" {
+			io.WriteString(rw, string(readTestFile(t, "exampleEnvironment.json")))
+			environmentUpdated = true
+		}
+		if req.URL.Path == "/v2/configurations/456/tags.json" && req.Method == "PUT" {
+			tagsCreated = true
+			body, err := ioutil.ReadAll(req.Body)
+			assert.Nil(t, err)
+			assert.JSONEq(t, `[{"value": "foo"}, {"value": "bar"}]`, string(body))
+		}
+	}
+
+	opts := &CreateEnvironmentRequest{
+		TemplateID:  strToPtr("12345"),
+		ProjectID:   intToPtr(12345),
+		Description: strToPtr("test environment"),
+		Tags: []*CreateTagRequest{
+			&CreateTagRequest{"foo"},
+			&CreateTagRequest{"bar"},
+		},
+	}
+	_, err := skytap.Environments.Create(context.Background(), opts)
+
+	assert.Nil(t, err)
+	assert.True(t, environmentCreated)
+	assert.True(t, environmentUpdated)
+	assert.True(t, tagsCreated)
+}
+
+func TestEnvironmentAddTag(t *testing.T) {
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+
+	tagsCreated := false
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		if req.URL.Path == "/v2/configurations/456/tags.json" && req.Method == "PUT" {
+			tagsCreated = true
+			body, err := ioutil.ReadAll(req.Body)
+			assert.Nil(t, err)
+			assert.JSONEq(t, `[{"value": "foo"}, {"value": "bar"}]`, string(body))
+		}
+
+	}
+	tags := []*CreateTagRequest{
+		&CreateTagRequest{"foo"},
+		&CreateTagRequest{"bar"},
+	}
+
+	err := skytap.Environments.CreateTags(context.Background(), "456", tags)
+	assert.Nil(t, err)
+	assert.True(t, tagsCreated)
+}
+
+func TestEnvironmentEmptyListOfTagHasNoEffect(t *testing.T) {
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+
+	tagsCreated := false
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		if req.URL.Path == "/v2/configurations/456/tags.json" && req.Method == "PUT" {
+			tagsCreated = true
+		}
+	}
+
+	tags := make([]*CreateTagRequest, 0)
+	err := skytap.Environments.CreateTags(context.Background(), "456", tags)
+
+	assert.Nil(t, err)
+	assert.False(t, tagsCreated)
+}
+
+func TestEnvironmentDeleteTag(t *testing.T) {
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+
+	tagDeleted := false
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		if req.URL.Path == "/v2/configurations/456/tags/42.json" && req.Method == "DELETE" {
+			tagDeleted = true
+		}
+	}
+
+	err := skytap.Environments.DeleteTag(context.Background(), "456", "42")
+	assert.Nil(t, err)
+	assert.True(t, tagDeleted)
+}
