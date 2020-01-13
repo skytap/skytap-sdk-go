@@ -20,6 +20,14 @@ func TestCreateEnvironment(t *testing.T) {
 	requestCounter := 0
 
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
+
+		// ignore user_data requests
+		if req.RequestURI == "/v2/configurations/456/user_data.json" {
+			_, err := io.WriteString(rw, `{"contents": ""}`)
+			assert.NoError(t, err)
+			return
+		}
+
 		log.Printf("Request: (%d)\n", requestCounter)
 		if requestCounter == 0 {
 			if req.URL.Path != "/configurations" {
@@ -105,6 +113,10 @@ func TestReadEnvironment(t *testing.T) {
 	defer hs.Close()
 
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		// ignore user_data requests
+		if req.RequestURI == "/v2/configurations/456/user_data.json" {
+			return
+		}
 		if req.URL.Path != "/v2/configurations/456" {
 			t.Error("Bad path")
 		}
@@ -128,7 +140,6 @@ func TestReadEnvironment(t *testing.T) {
 func TestUpdateEnvironment(t *testing.T) {
 	skytap, hs, handler := createClient(t)
 	defer hs.Close()
-
 	var environment Environment
 	err := json.Unmarshal(readTestFile(t, "exampleEnvironment.json"), &environment)
 	assert.NoError(t, err)
@@ -137,6 +148,13 @@ func TestUpdateEnvironment(t *testing.T) {
 	requestCounter := 0
 
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		// ignore user_data requests
+		if req.RequestURI == "/v2/configurations/456/user_data.json" {
+			_, err = io.WriteString(rw, `{"contents": ""}`)
+			assert.NoError(t, err)
+			return
+		}
+
 		log.Printf("Request: (%d)\n", requestCounter)
 		if requestCounter == 0 {
 			assert.Equal(t, "/v2/configurations/456", req.URL.Path, "Bad path")
@@ -193,6 +211,12 @@ func TestDeleteEnvironment(t *testing.T) {
 	requestCounter := 0
 
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		// ignore user_data requests
+		if req.RequestURI == "/v2/configurations/456/user_data.json" {
+			_, err := io.WriteString(rw, `{"contents": ""}`)
+			assert.NoError(t, err)
+			return
+		}
 		log.Printf("Request: (%d)\n", requestCounter)
 		if requestCounter == 0 {
 			assert.Equal(t, "/v2/configurations/456", req.URL.Path, "Bad path")
@@ -434,8 +458,8 @@ func TestEnvironmentAddTag(t *testing.T) {
 
 	}
 	tags := []*CreateTagRequest{
-		&CreateTagRequest{"foo"},
-		&CreateTagRequest{"bar"},
+		{"foo"},
+		{"bar"},
 	}
 
 	err := skytap.Environments.CreateTags(context.Background(), "456", tags)
@@ -475,4 +499,91 @@ func TestEnvironmentDeleteTag(t *testing.T) {
 	err := skytap.Environments.DeleteTag(context.Background(), "456", "42")
 	assert.Nil(t, err)
 	assert.True(t, tagDeleted)
+}
+
+func TestConfirmCreateEnvironmentCreateUserData(t *testing.T) {
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+
+	environmentCreated := false
+	environmentUpdated := false
+	environmentUserData := false
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		if req.URL.Path == "/configurations" && req.Method == "POST" { // create
+			_, err := io.WriteString(rw, `{"id": "456"}`)
+			assert.NoError(t, err)
+			environmentCreated = true
+		}
+		if req.URL.Path == "/v2/configurations/456" && req.Method == "GET" { // get
+			io.WriteString(rw, string(readTestFile(t, "exampleEnvironment.json")))
+		}
+		if req.URL.Path == "/v2/configurations/456" && req.Method == "PUT" {
+			io.WriteString(rw, string(readTestFile(t, "exampleEnvironment.json")))
+			environmentUpdated = true
+		}
+		if req.URL.Path == "/v2/configurations/456/user_data.json" && req.Method == "PUT" {
+			environmentUserData = true
+			body, err := ioutil.ReadAll(req.Body)
+			assert.Nil(t, err)
+			assert.JSONEq(t, `{"contents": "echo \\proc\\cpu_info"}`, string(body))
+		}
+
+	}
+
+	opts := &CreateEnvironmentRequest{
+		TemplateID:  strToPtr("12345"),
+		ProjectID:   intToPtr(12345),
+		Description: strToPtr("test environment"),
+		UserData: strToPtr("echo \\proc\\cpu_info"),
+
+	}
+	_, err := skytap.Environments.Create(context.Background(), opts)
+
+	assert.Nil(t, err)
+	assert.True(t, environmentCreated)
+	assert.True(t, environmentUpdated)
+	assert.True(t, environmentUserData)
+}
+
+func TestGetEnvironmentReadUserData(t *testing.T) {
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+
+	readUserData := false
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+
+		if req.URL.Path == "/v2/configurations/456/user_data.json" {
+			readUserData = true
+			assert.Equal(t, req.Method, "GET")
+			_, err := io.WriteString(rw, `{"contents": "dataexample"}`)
+			assert.NoError(t, err)
+		} else {
+			_, err := io.WriteString(rw, string(readTestFile(t, "exampleEnvironment.json")))
+			assert.NoError(t, err)
+		}
+	}
+
+	environment, err := skytap.Environments.Get(context.Background(), "456")
+	assert.Nil(t, err)
+	assert.True(t, readUserData)
+	assert.Equal(t, "dataexample" , *environment.UserData)
+}
+
+func TestConfirmUserDataUpdate(t *testing.T) {
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+
+	environmentUserData := false
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		if req.URL.Path == "/v2/configurations/456/user_data.json" && req.Method == "PUT" {
+			environmentUserData = true
+			body, err := ioutil.ReadAll(req.Body)
+			assert.Nil(t, err)
+			assert.JSONEq(t, `{"contents": "echo \\proc\\cpu_info"}`, string(body))
+		}
+
+	}
+	err := skytap.Environments.UpdateUserData(context.Background(), "456", strToPtr("echo \\proc\\cpu_info"))
+	assert.Nil(t, err)
+	assert.True(t, environmentUserData)
 }
