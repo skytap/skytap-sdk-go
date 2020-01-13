@@ -27,7 +27,6 @@ func TestCreateLabelCategoryList(t *testing.T) {
 	assert.Equal(t, *labelCategories[0].ID, 12345)
 }
 
-
 func TestCreateLabelCategoryNeverCreated(t *testing.T) {
 	skytap, hs, handler := createClient(t)
 	defer hs.Close()
