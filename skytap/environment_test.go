@@ -534,8 +534,7 @@ func TestConfirmCreateEnvironmentCreateUserData(t *testing.T) {
 		TemplateID:  strToPtr("12345"),
 		ProjectID:   intToPtr(12345),
 		Description: strToPtr("test environment"),
-		UserData: strToPtr("echo \\proc\\cpu_info"),
-
+		UserData:    strToPtr("echo \\proc\\cpu_info"),
 	}
 	_, err := skytap.Environments.Create(context.Background(), opts)
 
@@ -566,7 +565,7 @@ func TestGetEnvironmentReadUserData(t *testing.T) {
 	environment, err := skytap.Environments.Get(context.Background(), "456")
 	assert.Nil(t, err)
 	assert.True(t, readUserData)
-	assert.Equal(t, "dataexample" , *environment.UserData)
+	assert.Equal(t, "dataexample", *environment.UserData)
 }
 
 func TestConfirmUserDataUpdate(t *testing.T) {
