@@ -119,6 +119,8 @@ func (s *LabelCategoryClient) Create(ctx context.Context, category *LabelCategor
 		}
 
 		if *category.SingleValue != *createdCategory.SingleValue {
+			// try to rollback the existing resource
+			s.Delete(ctx, labelCategoryID)
 			return nil, fmt.Errorf("The label category with id: %d can not be created with this single value property"+
 				" as it is recreated from a existing label category.", labelCategoryID)
 		}
