@@ -29,7 +29,6 @@ func TestCreateNetwork(t *testing.T) {
 			return
 		}
 
-
 		log.Printf("Request: (%d)\n", requestCounter)
 		if requestCounter == 0 {
 			assert.Equal(t, "/v2/configurations/123", req.URL.Path, "Bad path")

@@ -437,7 +437,7 @@ func TestMakeTimeout(t *testing.T) {
 	requestCounter := 0
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
 		// ignore user_data requests
-		if strings.Contains(req.RequestURI,"user_data.json") {
+		if strings.Contains(req.RequestURI, "user_data.json") {
 			_, err := io.WriteString(rw, `{"contents": ""}`)
 			assert.NoError(t, err)
 			return
