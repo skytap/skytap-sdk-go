@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -435,6 +436,12 @@ func TestMakeTimeout(t *testing.T) {
 
 	requestCounter := 0
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		// ignore user_data requests
+		if strings.Contains(req.RequestURI,"user_data.json") {
+			_, err := io.WriteString(rw, `{"contents": ""}`)
+			assert.NoError(t, err)
+			return
+		}
 		log.Printf("Request: (%d)\n", requestCounter)
 		_, err = io.WriteString(rw, string(b))
 		assert.NoError(t, err)

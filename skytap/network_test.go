@@ -22,6 +22,14 @@ func TestCreateNetwork(t *testing.T) {
 	requestCounter := 0
 
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		// ignore user_data requests
+		if req.RequestURI == "/v2/configurations/123/user_data.json" {
+			_, err := io.WriteString(rw, `{"contents": ""}`)
+			assert.NoError(t, err)
+			return
+		}
+
+
 		log.Printf("Request: (%d)\n", requestCounter)
 		if requestCounter == 0 {
 			assert.Equal(t, "/v2/configurations/123", req.URL.Path, "Bad path")
@@ -105,6 +113,13 @@ func TestUpdateNetwork(t *testing.T) {
 	requestCounter := 0
 
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		// ignore user_data requests
+		if req.RequestURI == "/v2/configurations/123/user_data.json" {
+			_, err := io.WriteString(rw, `{"contents": ""}`)
+			assert.NoError(t, err)
+			return
+		}
+
 		log.Printf("Request: (%d)\n", requestCounter)
 		if requestCounter == 0 {
 			assert.Equal(t, "/v2/configurations/123", req.URL.Path, "Bad path")
