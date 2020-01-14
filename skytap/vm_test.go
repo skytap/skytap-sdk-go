@@ -29,6 +29,13 @@ func TestCreateVM(t *testing.T) {
 	requestCounter := 0
 
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		// ignore user_data requests
+		if req.RequestURI == "/v2/configurations/123/user_data.json" {
+			_, err := io.WriteString(rw, `{"contents": ""}`)
+			assert.NoError(t, err)
+			return
+		}
+
 		log.Printf("Request: (%d)\n", requestCounter)
 		if requestCounter == 0 {
 			assert.Equal(t, "/v2/configurations/123", req.URL.Path, "Bad path")
@@ -89,6 +96,13 @@ func TestCreateVMError(t *testing.T) {
 
 	requestCounter := 0
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		// ignore user_data requests
+		if req.RequestURI == "/v2/configurations/123/user_data.json" {
+			_, err := io.WriteString(rw, `{"contents": ""}`)
+			assert.NoError(t, err)
+			return
+		}
+
 		log.Printf("Request: (%d)\n", requestCounter)
 		if requestCounter == 0 {
 			assert.Equal(t, "/v2/configurations/123", req.URL.Path, "Bad path")
@@ -369,6 +383,13 @@ func TestUpdateCPURAMVM(t *testing.T) {
 
 	requestCounter := 0
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		// ignore user_data requests
+		if req.RequestURI == "/v2/configurations/123/user_data.json" {
+			_, err := io.WriteString(rw, `{"contents": ""}`)
+			assert.NoError(t, err)
+			return
+		}
+
 		log.Printf("Request: (%d)\n", requestCounter)
 		if requestCounter == 0 {
 			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
@@ -501,6 +522,12 @@ func TestUpdateRunstateVM(t *testing.T) {
 
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
 		log.Printf("Request: (%d)\n", requestCounter)
+		// ignore user_data requests
+		if req.RequestURI == "/v2/configurations/123/user_data.json" {
+			_, err := io.WriteString(rw, `{"contents": ""}`)
+			assert.NoError(t, err)
+			return
+		}
 		if requestCounter == 0 {
 			assert.Equal(t, "/v2/configurations/123", req.URL.Path, "Bad path")
 			assert.Equal(t, "GET", req.Method, "Bad method")
@@ -547,6 +574,12 @@ func TestDeleteVM(t *testing.T) {
 
 	*handler = func(rw http.ResponseWriter, req *http.Request) {
 		log.Printf("Request: (%d)\n", requestCounter)
+		// ignore user_data requests
+		if req.RequestURI == "/v2/configurations/123/user_data.json" {
+			_, err := io.WriteString(rw, `{"contents": ""}`)
+			assert.NoError(t, err)
+			return
+		}
 		if requestCounter == 0 {
 			assert.Equal(t, "/v2/configurations/123", req.URL.Path, "Bad path")
 			assert.Equal(t, http.MethodGet, req.Method, "Bad method")
