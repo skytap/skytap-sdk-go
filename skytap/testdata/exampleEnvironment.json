@@ -30,8 +30,8 @@
   "can_change_state": true,
   "can_share": true,
   "can_edit": true,
-  "label_count": 1,
-  "label_category_count": 1,
+  "label_count": 0,
+  "label_category_count": 0,
   "can_tag": true,
   "tags": [
     {
