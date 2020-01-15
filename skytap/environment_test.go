@@ -431,8 +431,8 @@ func TestConfirmCreateEnvironmentCreateTags(t *testing.T) {
 		ProjectID:   intToPtr(12345),
 		Description: strToPtr("test environment"),
 		Tags: []*CreateTagRequest{
-			&CreateTagRequest{"foo"},
-			&CreateTagRequest{"bar"},
+			{"foo"},
+			{"bar"},
 		},
 	}
 	_, err := skytap.Environments.Create(context.Background(), opts)
@@ -585,4 +585,88 @@ func TestConfirmUserDataUpdate(t *testing.T) {
 	err := skytap.Environments.UpdateUserData(context.Background(), "456", strToPtr("echo \\proc\\cpu_info"))
 	assert.Nil(t, err)
 	assert.True(t, environmentUserData)
+}
+
+func TestConfirmCreateEnvironmentCreateLabels(t *testing.T) {
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+
+	environmentCreated := false
+	environmentUpdated := false
+	labelsCreated := false
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		if req.URL.Path == "/configurations" && req.Method == "POST" { // create
+			_, err := io.WriteString(rw, `{"id": "456"}`)
+			assert.NoError(t, err)
+			environmentCreated = true
+		}
+		if req.URL.Path == "/v2/configurations/456" && req.Method == "GET" { // get
+			io.WriteString(rw, string(readTestFile(t, "exampleEnvironment.json")))
+		}
+		if req.URL.Path == "/v2/configurations/456" && req.Method == "PUT" {
+			io.WriteString(rw, string(readTestFile(t, "exampleEnvironment.json")))
+			environmentUpdated = true
+		}
+		if req.URL.Path == "/v2/configurations/456/labels.json" && req.Method == "PUT" {
+			labelsCreated = true
+			body, err := ioutil.ReadAll(req.Body)
+			assert.Nil(t, err)
+			assert.JSONEq(t, `[{"label_category": "foo", "value": "bar"},
+									    {"label_category": "foozz", "value": "barzz"}]`, string(body))
+		}
+	}
+
+	opts := &CreateEnvironmentRequest{
+		TemplateID:  strToPtr("12345"),
+		ProjectID:   intToPtr(12345),
+		Description: strToPtr("test environment"),
+		Labels: []*CreateLabelRequest{
+			{Category: strToPtr("foo"), Value: strToPtr("bar")},
+			{Category: strToPtr("foozz"), Value: strToPtr("barzz")},
+		},
+	}
+	_, err := skytap.Environments.Create(context.Background(), opts)
+
+	assert.Nil(t, err)
+	assert.True(t, environmentCreated)
+	assert.True(t, environmentUpdated)
+	assert.True(t, labelsCreated)
+}
+
+func TestEnvironmentAddLabel(t *testing.T) {
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+
+	labelsCreated := false
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		if req.URL.Path == "/v2/configurations/456/labels.json" && req.Method == "PUT" {
+			labelsCreated = true
+			body, err := ioutil.ReadAll(req.Body)
+			assert.Nil(t, err)
+			assert.JSONEq(t, `[{"label_category": "foo", "value": "bar"}]`, string(body))
+		}
+
+	}
+	labels := []*CreateLabelRequest{
+		{Category: strToPtr("foo"), Value: strToPtr("bar")},
+	}
+	err := skytap.Environments.CreateLabels(context.Background(), "456", labels)
+	assert.Nil(t, err)
+	assert.True(t, labelsCreated)
+}
+
+func TestEnvironmentDeleteLabel(t *testing.T) {
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+
+	labelDeleted := false
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		if req.URL.Path == "/v2/configurations/456/labels/42.json" && req.Method == "DELETE" {
+			labelDeleted = true
+		}
+	}
+
+	err := skytap.Environments.DeleteLabel(context.Background(), "456", "42")
+	assert.Nil(t, err)
+	assert.True(t, labelDeleted)
 }
