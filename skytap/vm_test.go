@@ -989,6 +989,35 @@ func TestCompareVMUpdateFalse(t *testing.T) {
 	assert.Equal(t, "VM not ready", message)
 }
 
+func TestGetUserData(t *testing.T) {
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		assert.Equal(t, req.RequestURI, "/v2/configurations/123/vms/456/user_data.json")
+		_, err := io.WriteString(rw, `{"Contents": "userDataContent"}`)
+		assert.NoError(t, err)
+	}
+
+	userData, err := skytap.VMs.GetUserData(context.Background(), "123", "456")
+	assert.Nil(t, err)
+	assert.NotNil(t, userData)
+}
+
+func TestUpdateUserData(t *testing.T) {
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		assert.Equal(t, req.RequestURI, "/v2/configurations/123/vms/456/user_data.json")
+		body, err := ioutil.ReadAll(req.Body)
+		assert.Nil(t, err)
+		assert.JSONEq(t, `{"contents": "foobar"}`, string(body))
+
+	}
+	userDataUpdate := "foobar"
+	err := skytap.VMs.UpdateUserData(context.Background(), "123", "456", &userDataUpdate)
+	assert.Nil(t, err)
+}
+
 func TestCompareDiskStructureNoDisks(t *testing.T) {
 	exampleEnvironment := fmt.Sprintf(string(readTestFile(t, "createVMResponse.json")), 123, 123, 456)
 	exampleVM := fmt.Sprintf(string(readTestFile(t, "VMResponse.json")), 456)
