@@ -1042,6 +1042,44 @@ func TestCompareDiskStructureNoDisks(t *testing.T) {
 	assert.Equal(t, "VM not ready", message)
 }
 
+func TestCreateLabel(t *testing.T) {
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+	created := false
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		created = true
+		assert.Equal(t, req.RequestURI, "/v2/configurations/123/vms/456/labels.json")
+		assert.Equal(t, req.Method, "POST")
+		body, err := ioutil.ReadAll(req.Body)
+		assert.Nil(t, err)
+		assert.JSONEq(t, `{"tag_type": "foo", "text": "bar"}`, string(body))
+	}
+	createRequest := CreateVMLabelRequest{
+		Category: strToPtr("foo"),
+		Value:    strToPtr("bar"),
+	}
+	err := skytap.VMs.CreateLabel(context.Background(), "123", "456", &createRequest)
+	assert.NoError(t, err)
+	assert.True(t, created)
+
+}
+
+func TestDeleteLabel(t *testing.T) {
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+
+	deleted := false
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		deleted = true
+		assert.Equal(t, req.Method, "DELETE")
+		assert.Equal(t, req.RequestURI, "/v2/configurations/123/vms/456/labels/789.json")
+	}
+	err := skytap.VMs.DeleteLabel(context.Background(), "123", "456", "789")
+	assert.NoError(t, err)
+	assert.True(t, deleted)
+	//assert.Equal(t, "VM not ready", message)
+}
+
 func createVMUpdateStructure() *UpdateVMRequest {
 	diskIdentification := buildDiskidentification()
 	diskIdentification[0] = DiskIdentification{ID: strToPtr("disk-20142867-38186761-scsi-0-1"),
