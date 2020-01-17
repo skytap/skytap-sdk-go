@@ -1,0 +1,35 @@
+{
+  "id": "tunnel-123456-789011",
+  "status": "not_busy",
+  "error": null,
+  "source_network": {
+    "id": "000000",
+    "url": "https://cloud.skytap.com/configurations/249424/networks/0000000",
+    "name": "Network 1",
+    "network_type": "automatic",
+    "subnet": "10.0.0.0/24",
+    "subnet_addr": "10.0.0.0",
+    "subnet_size": 24,
+    "gateway": "10.0.0.254",
+    "primary_nameserver": null,
+    "secondary_nameserver": null,
+    "region": "US-West",
+    "domain": "skytap.example",
+    "vpn_attachments": []
+  },
+  "target_network": {
+    "id": "111111",
+    "url": "https://cloud.skytap.com/configurations/808216/networks/111111",
+    "name": "Network 2",
+    "network_type": "automatic",
+    "subnet": "10.0.2.0/24",
+    "subnet_addr": "10.0.2.0",
+    "subnet_size": 24,
+    "gateway": "10.0.2.254",
+    "primary_nameserver": null,
+    "secondary_nameserver": null,
+    "region": "US-West",
+    "domain": "test.net",
+    "vpn_attachments": []
+  }
+}
