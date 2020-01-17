@@ -170,3 +170,28 @@ func TestLabelCategoryDelete(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, deleted)
 }
+
+
+func TestLabelCategoryWithValidationError(t *testing.T) {
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		assert.Equal(t, req.RequestURI, "/v2/label_categories")
+		assert.Equal(t, req.Method, "POST")
+		rw.WriteHeader(409)
+		_, err := io.WriteString(rw, `{"error": "Validation failed: The label category name already exists.", 
+											  "url": "https://cloud.skytap.com/v2/label_categories/12345"}`)
+		assert.Nil(t, err)
+	}
+
+	opts := LabelCategory{
+		Name:        strToPtr("label-test"),
+		SingleValue: boolToPtr(true),
+	}
+	_, err := skytap.LabelCategory.Create(context.Background(), &opts)
+
+	assert.Error(t, err, )
+	assert.EqualError(t, err, "Error creating label category with name (label-test): Validation failed: " +
+		"The label category name already exists.")
+}
