@@ -171,7 +171,6 @@ func TestLabelCategoryDelete(t *testing.T) {
 	assert.True(t, deleted)
 }
 
-
 func TestLabelCategoryWithValidationError(t *testing.T) {
 	skytap, hs, handler := createClient(t)
 	defer hs.Close()
@@ -191,7 +190,7 @@ func TestLabelCategoryWithValidationError(t *testing.T) {
 	}
 	_, err := skytap.LabelCategory.Create(context.Background(), &opts)
 
-	assert.Error(t, err, )
-	assert.EqualError(t, err, "Error creating label category with name (label-test): Validation failed: " +
+	assert.Error(t, err)
+	assert.EqualError(t, err, "Error creating label category with name (label-test): Validation failed: "+
 		"The label category name already exists.")
 }
