@@ -5,13 +5,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/stretchr/testify/require"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -256,6 +259,56 @@ func TestPutPostPreRequestRunstate(t *testing.T) {
 	assert.Equal(t, 5, requestCounter)
 }
 
+func TestPutPostPreRequest_ContextCancelled(t *testing.T) {
+	response := fmt.Sprintf(string(readTestFile(t, "VMResponse.json")), 456)
+
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+
+	requestCounterLock := &sync.Mutex{}
+	requestCounter := 0
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		log.Printf("Request: (%d)\n", requestCounter)
+		method := http.MethodGet
+		path := "/v2/configurations/123/vms/456"
+		if requestCounter == 1 {
+			method = http.MethodPost
+			path = "/v2/configurations/123/vms/456/interfaces"
+		} else if requestCounter >= 2 {
+			method = http.MethodGet
+			path = "/v2/configurations/123/vms/456/interfaces/456"
+			go func() {
+				time.Sleep(250 * time.Millisecond)
+				cancel()
+			}()
+		}
+		assert.Equal(t, path, req.URL.Path, fmt.Sprintf("Bad path: %d", requestCounter))
+		assert.Equal(t, method, req.Method, fmt.Sprintf("Bad method: %d", requestCounter))
+
+		requestCounterLock.Lock()
+		defer requestCounterLock.Unlock()
+		requestCounter++
+
+		_, err := io.WriteString(rw, response)
+		assert.NoError(t, err)
+	}
+
+	nicType := &CreateInterfaceRequest{
+		NICType: nicTypeToPtr(NICTypeE1000),
+	}
+
+	_, err := skytap.Interfaces.Create(ctx, "123", "456", nicType)
+	assert.EqualError(t, err, "context canceled")
+
+	requestCounterLock.Lock()
+	defer requestCounterLock.Unlock()
+	assert.Equal(t, 3, requestCounter)
+}
+
 func TestPutPostPreRequestRunstate2(t *testing.T) {
 	response := fmt.Sprintf(string(readTestFile(t, "VMResponse.json")), 456)
 	var vm VM
@@ -373,6 +426,44 @@ func TestPutPostDelete(t *testing.T) {
 	assert.Equal(t, 3, requestCounter)
 }
 
+func TestCheckResourceStateUntilSatisfied_ContextCancelled(t *testing.T) {
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+
+	var env Environment
+	err := json.Unmarshal(readTestFile(t, "exampleEnvironment.json"), &env)
+	require.NoError(t, err)
+
+	env.Runstate = environmentRunStateToPtr(EnvironmentRunstateBusy)
+	busy, err := json.Marshal(&env)
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	requestCounter := 0
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		log.Printf("Request: (%d)\n", requestCounter)
+		_, err := io.WriteString(rw, string(busy))
+		require.NoError(t, err)
+		if requestCounter == 1 {
+			go func() {
+				time.Sleep(250 * time.Millisecond)
+				cancel()
+			}()
+		}
+		requestCounter++
+	}
+
+	update := &UpdateVMRequest{Runstate: vmRunStateToPtr(VMRunstateStopped)}
+	req, err := skytap.newRequest(ctx, http.MethodPut, "", update)
+	require.NoError(t, err)
+
+	_, err = skytap.do(ctx, req, nil, &environmentVMRunState{runStateCheckStatus: envRunStateCheck, environmentID: strToPtr("1"), environment: []EnvironmentRunstate{EnvironmentRunstateStopped}}, update)
+	assert.EqualError(t, err, "context canceled")
+
+	assert.Equal(t, 2, requestCounter)
+}
+
 func TestOutputAndHandleError(t *testing.T) {
 	message := `{
 		"errors": [
@@ -448,9 +539,7 @@ func TestMakeTimeout(t *testing.T) {
 		requestCounter++
 	}
 
-	req, err := skytap.newRequest(context.Background(), http.MethodGet, "", nil)
-	assert.Nil(t, err)
-	err = skytap.checkResourceStateUntilSatisfied(context.Background(), req, envRunStateNotBusy(""))
+	err = skytap.checkResourceStateUntilSatisfied(context.Background(), envRunStateNotBusy(""))
 	assert.Error(t, err)
 	assert.Equal(t, testingRetryCount, requestCounter)
 	assert.Equal(t, "timeout waiting for state", err.Error())

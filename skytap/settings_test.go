@@ -22,13 +22,16 @@ func TestNewDefaultSettingsWithOpts(t *testing.T) {
 	userAgent := "testclient/1.0.0"
 	username := "user"
 	token := "token"
+	retryCount := 5
 
 	settings := NewDefaultSettings(
 		WithBaseURL(baseURL),
+		WithMaxRetryCount(retryCount),
 		WithCredentialsProvider(NewAPITokenCredentials(username, token)))
 
 	assert.Equal(t, baseURL, settings.baseURL)
 	assert.Equal(t, DefaultUserAgent, settings.userAgent)
+	assert.Equal(t, retryCount, settings.maxRetryCount)
 
 	if assert.NotNil(t, settings.credentials) {
 		assert.IsType(t, &APITokenCredentials{}, settings.credentials)
