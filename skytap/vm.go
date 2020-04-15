@@ -439,11 +439,14 @@ func (s *VMsServiceClient) updateHardware(ctx context.Context, environmentID str
 		opts.Hardware.UpdateDisks = nil
 	}
 
-	state := vmRequestRunStateStopped(environmentID, id)
-	state.diskIdentification = diskIdentification
-
 	// Let's first create new disks, update the current ones or change VM settings
 	if opts.Hardware.UpdateDisks != nil || opts.Hardware.RAM != nil || opts.Hardware.CPUs != nil || opts.Name != nil {
+		state := vmRequestRunStateStopped(environmentID, id)
+		// We need to add the removed disks to the list of disks otherwise
+		// buildVMNewDisks() won't be able to calculate the proper list of new disks
+		// causing the program to loop forever
+		state.diskIdentification = addRemovedDisks(diskIdentification, removes)
+
 		requestCreate, err := s.client.newRequest(ctx, "PUT", path, opts)
 		if err != nil {
 			return nil, err
@@ -465,6 +468,9 @@ func (s *VMsServiceClient) updateHardware(ctx context.Context, environmentID str
 	disks := vm.Hardware.Disks
 
 	if len(removes) > 0 {
+		state := vmRequestRunStateStopped(environmentID, id)
+		state.diskIdentification = diskIdentification
+
 		// delete disk phase, removing all disks only (no other updates to the VM will be performed)
 		vm, err := s.removeDisks(removes, ctx, path, vm, state, environmentID, id)
 		if err != nil {
@@ -529,6 +535,23 @@ func (s *VMsServiceClient) changeRunstate(ctx context.Context, environmentID str
 		return nil, err
 	}
 	return &updatedVM, nil
+}
+
+// addRemovedDisks adds all the disks to be removed to the disk identification
+func addRemovedDisks(identification []DiskIdentification, removes map[string]ExistingDisk) []DiskIdentification {
+	newIdentification := make([]DiskIdentification, 0)
+
+	if identification != nil {
+		newIdentification = append(newIdentification, identification...)
+	}
+
+	for id := range removes {
+		newIdentification = append(newIdentification, DiskIdentification{
+			ID: strToPtr(id),
+		})
+	}
+
+	return newIdentification
 }
 
 // matchUpNewDisks updates the VM disk names (ignoring the OS disk, that is, the first disk) for all the disk identifications

@@ -259,7 +259,7 @@ func TestUpdateVMModifyDisks(t *testing.T) {
 	assert.Nil(t, disks[0].Name, "os")
 }
 
-func TestUpdateVMModifyAndDeleteDisks(t *testing.T) {
+func TestUpdateVMModifyVMPropertiesAndDeleteDisks(t *testing.T) {
 	response := fmt.Sprintf(string(readTestFile(t, "VMResponse.json")), 456)
 
 	skytap, hs, handler := createClient(t)
@@ -273,6 +273,7 @@ func TestUpdateVMModifyAndDeleteDisks(t *testing.T) {
 
 	var vmModified VM
 	err = json.Unmarshal([]byte(response), &vmModified)
+	vmModified.Name = strToPtr("new vm name")
 	bytesVmModified, err := json.Marshal(&vmModified)
 	assert.Nil(t, err, "Bad vm")
 
@@ -306,7 +307,7 @@ func TestUpdateVMModifyAndDeleteDisks(t *testing.T) {
 			assert.Nil(t, err, "Bad request body")
 			assert.JSONEq(t, `
 				{
-					"name":"test vm",
+					"name":"new vm name",
 					"hardware": {}
 				}`, string(body), "Bad request body")
 
@@ -367,17 +368,133 @@ func TestUpdateVMModifyAndDeleteDisks(t *testing.T) {
 		requestCounter++
 	}
 
-	opts := createVMUpdateStructure()
-	opts.Runstate = nil
-	opts.Hardware.RAM = nil
-	opts.Hardware.CPUs = nil
-	opts.Hardware.UpdateDisks.NewDisks = nil
-	opts.Hardware.UpdateDisks.OSSize = nil
-	opts.Hardware.UpdateDisks.DiskIdentification = opts.Hardware.UpdateDisks.DiskIdentification[0:1]
-	opts.Hardware.UpdateDisks.DiskIdentification[0].Size = intToPtr(51200)
-	delete(opts.Hardware.UpdateDisks.ExistingDisks, "disk-20142867-38186761-scsi-0-1")
-	delete(opts.Hardware.UpdateDisks.ExistingDisks, "disk-20142867-38186761-scsi-0-2")
-	delete(opts.Hardware.UpdateDisks.ExistingDisks, "disk-20142867-38186761-scsi-0-3")
+	opts := createVMUpdateChangingVMNameAndRemovingThreeDisks()
+
+	vmUpdate, err := skytap.VMs.Update(context.Background(), "123", "456", opts)
+	assert.Nil(t, err, "Bad API method")
+
+	assert.Equal(t, 9, requestCounter)
+
+	vmDisksRemoved.Hardware.Disks[1].Name = strToPtr("1")
+	assert.Equal(t, vmDisksRemoved, *vmUpdate, "Bad vm")
+
+	disks := vmUpdate.Hardware.Disks
+	assert.Equal(t, 2, len(disks), "disk length")
+}
+
+func TestUpdateVMAddAndDeleteDisks(t *testing.T) {
+	response := fmt.Sprintf(string(readTestFile(t, "VMResponse.json")), 456)
+
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+
+	var vmCurrent VM
+	err := json.Unmarshal([]byte(response), &vmCurrent)
+	assert.NoError(t, err)
+	bytesCurrent, err := json.Marshal(&vmCurrent)
+	assert.Nil(t, err, "Bad vm")
+
+	var vmModified VM
+	err = json.Unmarshal([]byte(response), &vmModified)
+	vmModified.Hardware.Disks = append(vmModified.Hardware.Disks, *createDiskWithSize("disk-20142867-38186761-scsi-0-4", nil, 2048))
+	bytesVmModified, err := json.Marshal(&vmModified)
+	assert.Nil(t, err, "Bad vm")
+
+	var vmDisksRemoved VM
+	err = json.Unmarshal([]byte(response), &vmDisksRemoved)
+	vmDisksRemoved.Hardware.Disks = vmDisksRemoved.Hardware.Disks[0:2]
+	bytesDisksModified, err := json.Marshal(&vmDisksRemoved)
+	assert.Nil(t, err, "Bad vm")
+
+	requestCounter := 0
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		log.Printf("Request: (%d)\n", requestCounter)
+		if requestCounter == 0 {
+			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
+			assert.Equal(t, "GET", req.Method, "Bad method")
+
+			_, err := io.WriteString(rw, string(bytesCurrent))
+			assert.NoError(t, err)
+		} else if requestCounter == 1 {
+			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
+			assert.Equal(t, "GET", req.Method, "Bad method")
+
+			_, err := io.WriteString(rw, string(bytesCurrent))
+			assert.NoError(t, err)
+		} else if requestCounter == 2 {
+			// delete the disks
+			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
+			assert.Equal(t, "PUT", req.Method, "Bad method")
+
+			body, err := ioutil.ReadAll(req.Body)
+			assert.Nil(t, err, "Bad request body")
+			assert.JSONEq(t, `
+				{
+					"hardware": {
+						"disks": {
+    						"new": [2048]
+						}
+					}
+				}`, string(body), "Bad request body")
+
+			_, err = io.WriteString(rw, string(bytesVmModified))
+			assert.NoError(t, err)
+		} else if requestCounter == 3 {
+			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
+			assert.Equal(t, "GET", req.Method, "Bad method")
+
+			_, err := io.WriteString(rw, string(bytesVmModified))
+			assert.NoError(t, err)
+		} else if requestCounter == 4 {
+			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
+			assert.Equal(t, "GET", req.Method, "Bad method")
+
+			_, err := io.WriteString(rw, string(bytesVmModified))
+			assert.NoError(t, err)
+		} else if requestCounter == 5 {
+			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
+			assert.Equal(t, "GET", req.Method, "Bad method")
+
+			_, err := io.WriteString(rw, string(bytesVmModified))
+			assert.NoError(t, err)
+		} else if requestCounter == 6 {
+			// delete the disks
+			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
+			assert.Equal(t, "PUT", req.Method, "Bad method")
+
+			body, err := ioutil.ReadAll(req.Body)
+			assert.Nil(t, err, "Bad request body")
+			assert.JSONEq(t, `
+				{
+					"hardware" : {
+						"disks": {
+							"existing": {
+								"disk-20142867-38186761-scsi-0-2" : {"id":"disk-20142867-38186761-scsi-0-2", "size": null},
+								"disk-20142867-38186761-scsi-0-3" : {"id":"disk-20142867-38186761-scsi-0-3", "size": null}
+							}
+						}
+					}
+				}`, string(body), "Bad request body")
+
+			_, err = io.WriteString(rw, string(bytesDisksModified))
+			assert.NoError(t, err)
+		} else if requestCounter == 7 {
+			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
+			assert.Equal(t, "GET", req.Method, "Bad method")
+
+			_, err := io.WriteString(rw, string(bytesDisksModified))
+			assert.NoError(t, err)
+		} else if requestCounter == 8 {
+			assert.Equal(t, "/v2/configurations/123/vms/456", req.URL.Path, "Bad path")
+			assert.Equal(t, "GET", req.Method, "Bad method")
+
+			_, err := io.WriteString(rw, string(bytesDisksModified))
+			assert.NoError(t, err)
+		}
+		requestCounter++
+	}
+
+	opts := createVMUpdateRemovingTwoDisksAndAddingOne(2048)
 	vmUpdate, err := skytap.VMs.Update(context.Background(), "123", "456", opts)
 	assert.Nil(t, err, "Bad API method")
 
@@ -883,6 +1000,17 @@ func createDisk(id string, name *string) *Disk {
 	}
 }
 
+func createDiskWithSize(id string, name *string, size int) *Disk {
+	return &Disk{
+		ID:         strToPtr(id),
+		Size:       intToPtr(size),
+		Type:       strToPtr("SCSI"),
+		Controller: strToPtr("0"),
+		LUN:        strToPtr("-1"),
+		Name:       name,
+	}
+}
+
 func TestBuildRemoveList(t *testing.T) {
 	response := fmt.Sprintf(string(readTestFile(t, "VMResponse.json")), 456)
 	var vm VM
@@ -1241,6 +1369,46 @@ func createVMUpdateStructure() *UpdateVMRequest {
 				ExistingDisks:      existingDisks,
 				DiskIdentification: diskIdentification,
 				OSSize:             intToPtr(51201),
+			},
+		},
+	}
+	return opts
+}
+
+// createVMUpdateChangingVMNameAndRemovingThreeDisks creates an UpdateVMRequest will remove 2 disks specified on VMResponse.json
+// and update the VM name (without modifying any disks)
+func createVMUpdateChangingVMNameAndRemovingThreeDisks() *UpdateVMRequest {
+	diskIdentification := make([]DiskIdentification, 1)
+	diskIdentification[0] = DiskIdentification{ID: strToPtr("disk-20142867-38186761-scsi-0-1"),
+		Size: intToPtr(51200),
+		Name: strToPtr("1")}
+
+	existingDisks := make(map[string]ExistingDisk)
+	opts := &UpdateVMRequest{
+		Name: strToPtr("new vm name"),
+		Hardware: &UpdateHardware{
+			UpdateDisks: &UpdateDisks{
+				ExistingDisks:      existingDisks,
+				DiskIdentification: diskIdentification,
+			},
+		},
+	}
+	return opts
+}
+
+// createVMUpdateRemovingTwoDisksAndAddingOne creates an UpdateVMRequest will remove 2 disks specified on VMResponse.json
+// and add one extra disk
+func createVMUpdateRemovingTwoDisksAndAddingOne(newDiskSize int) *UpdateVMRequest {
+	diskIdentification := make([]DiskIdentification, 1)
+	diskIdentification[0] = DiskIdentification{ID: strToPtr("disk-20142867-38186761-scsi-0-1"),
+		Size: intToPtr(51200),
+		Name: strToPtr("1")}
+
+	opts := &UpdateVMRequest{
+		Hardware: &UpdateHardware{
+			UpdateDisks: &UpdateDisks{
+				NewDisks:           []int{newDiskSize},
+				DiskIdentification: diskIdentification,
 			},
 		},
 	}
