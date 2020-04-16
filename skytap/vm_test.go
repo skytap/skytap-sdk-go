@@ -368,7 +368,7 @@ func TestUpdateVMModifyVMPropertiesAndDeleteDisks(t *testing.T) {
 		requestCounter++
 	}
 
-	opts := createVMUpdateChangingVMNameAndRemovingThreeDisks()
+	opts := createVMUpdateChangingVMNameAndRemovingTwoDisks()
 
 	vmUpdate, err := skytap.VMs.Update(context.Background(), "123", "456", opts)
 	assert.Nil(t, err, "Bad API method")
@@ -1375,9 +1375,9 @@ func createVMUpdateStructure() *UpdateVMRequest {
 	return opts
 }
 
-// createVMUpdateChangingVMNameAndRemovingThreeDisks creates an UpdateVMRequest will remove 2 disks specified on VMResponse.json
-// and update the VM name (without modifying any disks)
-func createVMUpdateChangingVMNameAndRemovingThreeDisks() *UpdateVMRequest {
+// createVMUpdateChangingVMNameAndRemovingTwoDisks creates an UpdateVMRequest will remove 2 of the disks specified on
+// VMResponse.json and update the VM name
+func createVMUpdateChangingVMNameAndRemovingTwoDisks() *UpdateVMRequest {
 	diskIdentification := make([]DiskIdentification, 1)
 	diskIdentification[0] = DiskIdentification{ID: strToPtr("disk-20142867-38186761-scsi-0-1"),
 		Size: intToPtr(51200),
