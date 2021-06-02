@@ -670,3 +670,41 @@ func TestEnvironmentDeleteLabel(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, labelDeleted)
 }
+
+func TestEnvironmentsServiceClient_ListProjects(t *testing.T) {
+	skytap, hs, handler := createClient(t)
+	defer hs.Close()
+
+	*handler = func(rw http.ResponseWriter, req *http.Request) {
+		if req.URL.Path != "/v2/configurations/456/projects" || req.Method != "GET" {
+			t.Error("Bad path or method, expected", "GET /v2/configurations/456/projects", "got", req.Method, req.URL.Path)
+		}
+		_, err := io.WriteString(rw, `[
+			{
+				"id": "789",
+				"url": "https://cloud.skytap.com/v2/projects/789",
+				"name": "Test Project",
+				"summary": "Proj",
+				"auto_add_role_name": "manager",
+				"show_project_members": true,
+				"created_at": "2021/05/11 13:41:34 +0100",
+				"owner_name": "Gary Digby",
+				"owner_url": "https://cloud.skytap.com/v2/users/468583",
+				"user_role": "manager",
+				"user_count": 3,
+				"can_edit": true,
+				"configuration_count": 1,
+				"template_count": 2,
+				"asset_count": 0,
+				"user_can_share": true
+			}
+		]`)
+		assert.NoError(t, err)
+	}
+
+	projects, err := skytap.Environments.ListProjects(context.Background(), "456")
+	assert.NoError(t, err)
+
+	assert.Len(t, projects.Value, 1)
+	assert.Equal(t, 789, *projects.Value[0].ID)
+}
