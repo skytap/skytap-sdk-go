@@ -2,3 +2,4 @@ src
 bin
 pkg
 api/testdata/config.json
+.DS_Store
