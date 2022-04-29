@@ -18,8 +18,8 @@ import (
 	"fmt"
 	"strings"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/dghubble/sling"
+	log "github.com/sirupsen/logrus"
 )
 
 const (

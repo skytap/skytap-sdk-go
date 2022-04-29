@@ -17,8 +17,8 @@ package api
 import (
 	"errors"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/dghubble/sling"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
