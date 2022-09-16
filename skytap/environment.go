@@ -184,6 +184,24 @@ type CreateEnvironmentRequest struct {
 	Description     *string               `json:"description,omitempty"`
 	Owner           *string               `json:"owner,omitempty"`
 	OutboundTraffic *bool                 `json:"outbound_traffic,omitempty"`
+	DisableInternet *bool                 `json:"disable_internet,omitempty"`
+	Routable        *bool                 `json:"routable,omitempty"`
+	SuspendOnIdle   *int                  `json:"suspend_on_idle,omitempty"`
+	SuspendAtTime   *string               `json:"suspend_at_time,omitempty"`
+	ShutdownOnIdle  *int                  `json:"shutdown_on_idle,omitempty"`
+	ShutdownAtTime  *string               `json:"shutdown_at_time,omitempty"`
+	Tags            []*CreateTagRequest   `json:"-"`
+	UserData        *string               `json:"-"`
+	Labels          []*CreateLabelRequest `json:"-"`
+}
+
+type createEnvironmentRequestV1 struct {
+	TemplateID      *string               `json:"template_id,omitempty"`
+	ProjectID       *int                  `json:"project_id,omitempty"`
+	Name            *string               `json:"name,omitempty"`
+	Description     *string               `json:"description,omitempty"`
+	Owner           *string               `json:"owner,omitempty"`
+	DisableInternet *bool                 `json:"disable_internet,omitempty"`
 	Routable        *bool                 `json:"routable,omitempty"`
 	SuspendOnIdle   *int                  `json:"suspend_on_idle,omitempty"`
 	SuspendAtTime   *string               `json:"suspend_at_time,omitempty"`
@@ -200,6 +218,21 @@ type UpdateEnvironmentRequest struct {
 	Description     *string              `json:"description,omitempty"`
 	Owner           *string              `json:"owner,omitempty"`
 	OutboundTraffic *bool                `json:"outbound_traffic,omitempty"`
+	DisableInternet *bool                `json:"disable_internet,omitempty"`
+	Routable        *bool                `json:"routable,omitempty"`
+	SuspendOnIdle   *int                 `json:"suspend_on_idle,omitempty"`
+	SuspendAtTime   *string              `json:"suspend_at_time,omitempty"`
+	ShutdownOnIdle  *int                 `json:"shutdown_on_idle,omitempty"`
+	ShutdownAtTime  *string              `json:"shutdown_at_time,omitempty"`
+	Runstate        *EnvironmentRunstate `json:"runstate,omitempty"`
+}
+
+// UpdateEnvironmentRequest describes the update the environment data
+type updateEnvironmentRequestV1 struct {
+	Name            *string              `json:"name,omitempty"`
+	Description     *string              `json:"description,omitempty"`
+	Owner           *string              `json:"owner,omitempty"`
+	DisableInternet *bool                `json:"disable_internet,omitempty"`
 	Routable        *bool                `json:"routable,omitempty"`
 	SuspendOnIdle   *int                 `json:"suspend_on_idle,omitempty"`
 	SuspendAtTime   *string              `json:"suspend_at_time,omitempty"`
@@ -279,7 +312,12 @@ func (s *EnvironmentsServiceClient) Get(ctx context.Context, id string) (*Enviro
 
 // Create an environment
 func (s *EnvironmentsServiceClient) Create(ctx context.Context, opts *CreateEnvironmentRequest) (*Environment, error) {
-	req, err := s.client.newRequest(ctx, "POST", environmentLegacyBasePath, opts)
+	envReq, err := opts.toV1Request()
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := s.client.newRequest(ctx, "POST", environmentLegacyBasePath, envReq)
 	if err != nil {
 		return nil, err
 	}
@@ -304,7 +342,7 @@ func (s *EnvironmentsServiceClient) Create(ctx context.Context, opts *CreateEnvi
 		Name:            opts.Name,
 		Description:     opts.Description,
 		Owner:           opts.Owner,
-		OutboundTraffic: opts.OutboundTraffic,
+		DisableInternet: opts.DisableInternet,
 		Routable:        opts.Routable,
 		SuspendOnIdle:   opts.SuspendOnIdle,
 		SuspendAtTime:   opts.SuspendAtTime,
@@ -339,9 +377,13 @@ func (s *EnvironmentsServiceClient) Create(ctx context.Context, opts *CreateEnvi
 
 // Update an environment
 func (s *EnvironmentsServiceClient) Update(ctx context.Context, id string, updateEnvironment *UpdateEnvironmentRequest) (*Environment, error) {
-	path := fmt.Sprintf("%s/%s", environmentBasePath, id)
+	path := fmt.Sprintf("%s/%s", environmentLegacyBasePath, id)
+	envReq, err := updateEnvironment.toV1Request()
+	if err != nil {
+		return nil, err
+	}
 
-	req, err := s.client.newRequest(ctx, "PUT", path, updateEnvironment)
+	req, err := s.client.newRequest(ctx, "PUT", path, envReq)
 	if err != nil {
 		return nil, err
 	}
@@ -499,6 +541,30 @@ func (payload *CreateEnvironmentRequest) compareResponse(ctx context.Context, c 
 	return requestNotAsExpected, false
 }
 
+func (payload *CreateEnvironmentRequest) toV1Request() (*createEnvironmentRequestV1, error) {
+	disableInternet, err := calculateDisableInternet(payload.OutboundTraffic, payload.DisableInternet)
+	if err != nil {
+		return nil, err
+	}
+
+	return &createEnvironmentRequestV1{
+		TemplateID:      payload.TemplateID,
+		ProjectID:       payload.ProjectID,
+		Name:            payload.Name,
+		Description:     payload.Description,
+		Owner:           payload.Owner,
+		DisableInternet: disableInternet,
+		Routable:        payload.Routable,
+		SuspendOnIdle:   payload.SuspendOnIdle,
+		SuspendAtTime:   payload.SuspendAtTime,
+		ShutdownOnIdle:  payload.ShutdownOnIdle,
+		ShutdownAtTime:  payload.ShutdownAtTime,
+		Tags:            payload.Tags,
+		UserData:        payload.UserData,
+		Labels:          payload.Labels,
+	}, nil
+}
+
 func (payload *UpdateEnvironmentRequest) compareResponse(ctx context.Context, c *Client, v interface{}, state *environmentVMRunState) (string, bool) {
 	if envOriginal, ok := v.(*Environment); ok {
 		env, err := c.Environments.Get(ctx, *envOriginal.ID)
@@ -606,6 +672,38 @@ func (payload *UpdateEnvironmentRequest) string() string {
 	sb.WriteString(runstate)
 	log.Printf("[DEBUG] SDK environment payload (%s)\n", sb.String())
 	return sb.String()
+}
+
+func (payload *UpdateEnvironmentRequest) toV1Request() (*updateEnvironmentRequestV1, error) {
+	disableInternet, err := calculateDisableInternet(payload.OutboundTraffic, payload.DisableInternet)
+	if err != nil {
+		return nil, err
+	}
+
+	return &updateEnvironmentRequestV1{
+		Name:            payload.Name,
+		Description:     payload.Description,
+		Owner:           payload.Owner,
+		DisableInternet: disableInternet,
+		Routable:        payload.Routable,
+		SuspendOnIdle:   payload.SuspendOnIdle,
+		SuspendAtTime:   payload.SuspendAtTime,
+		ShutdownOnIdle:  payload.ShutdownOnIdle,
+		ShutdownAtTime:  payload.ShutdownAtTime,
+		Runstate:        payload.Runstate,
+	}, nil
+}
+
+func calculateDisableInternet(outgoingTraffic *bool, disableInternet *bool) (*bool, error) {
+	if outgoingTraffic != nil && disableInternet != nil {
+		return nil, fmt.Errorf("OutboundTraffic and DisableInternet cannot be used together")
+	}
+
+	if disableInternet != nil {
+		return disableInternet, nil
+	} else {
+		return outgoingTraffic, nil
+	}
 }
 
 func logEnvironmentStatus(env *Environment) {

@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -38,7 +39,7 @@ func TestCreateEnvironment(t *testing.T) {
 			}
 			body, err := ioutil.ReadAll(req.Body)
 			assert.Nil(t, err)
-			assert.JSONEq(t, fmt.Sprintf(`{"template_id":%q, "project_id":%d, "description":"test environment"}`, "12345", 12345), string(body))
+			assert.JSONEq(t, fmt.Sprintf(`{"template_id":%q, "project_id":%d, "description":"test environment", "disable_internet":true}`, "12345", 12345), string(body))
 			_, err = io.WriteString(rw, `{"id": "456"}`)
 			assert.NoError(t, err)
 		} else if requestCounter == 1 {
@@ -60,7 +61,7 @@ func TestCreateEnvironment(t *testing.T) {
 			_, err := io.WriteString(rw, string(readTestFile(t, "exampleEnvironment.json")))
 			assert.NoError(t, err)
 		} else if requestCounter == 4 {
-			if req.URL.Path != "/v2/configurations/456" {
+			if req.URL.Path != "/configurations/456" {
 				t.Error("Bad path")
 			}
 			if req.Method != "PUT" {
@@ -68,7 +69,7 @@ func TestCreateEnvironment(t *testing.T) {
 			}
 			body, err := ioutil.ReadAll(req.Body)
 			assert.Nil(t, err)
-			assert.JSONEq(t, `{"description": "test environment", "runstate":"running"}`, string(body))
+			assert.JSONEq(t, `{"description": "test environment", "runstate":"running", "disable_internet":true}`, string(body))
 
 			_, err = io.WriteString(rw, string(readTestFile(t, "exampleEnvironment.json")))
 			assert.NoError(t, err)
@@ -90,9 +91,10 @@ func TestCreateEnvironment(t *testing.T) {
 	}
 
 	opts := &CreateEnvironmentRequest{
-		TemplateID:  strToPtr("12345"),
-		ProjectID:   intToPtr(12345),
-		Description: strToPtr("test environment"),
+		TemplateID:      strToPtr("12345"),
+		ProjectID:       intToPtr(12345),
+		Description:     strToPtr("test environment"),
+		DisableInternet: boolToPtr(true),
 	}
 
 	environment, err := skytap.Environments.Create(context.Background(), opts)
@@ -163,7 +165,7 @@ func TestUpdateEnvironment(t *testing.T) {
 			_, err := io.WriteString(rw, string(readTestFile(t, "exampleEnvironment.json")))
 			assert.NoError(t, err)
 		} else if requestCounter == 1 {
-			if req.URL.Path != "/v2/configurations/456" {
+			if req.URL.Path != "/configurations/456" {
 				t.Error("Bad path")
 			}
 			if req.Method != "PUT" {
@@ -171,7 +173,7 @@ func TestUpdateEnvironment(t *testing.T) {
 			}
 			body, err := ioutil.ReadAll(req.Body)
 			assert.Nil(t, err)
-			assert.JSONEq(t, `{"description": "updated environment"}`, string(body))
+			assert.JSONEq(t, `{"description": "updated environment", "disable_internet":false}`, string(body))
 
 			b, err := json.Marshal(&environment)
 			assert.Nil(t, err)
@@ -193,7 +195,8 @@ func TestUpdateEnvironment(t *testing.T) {
 	}
 
 	opts := &UpdateEnvironmentRequest{
-		Description: strToPtr(*environment.Description),
+		Description:     strToPtr(*environment.Description),
+		OutboundTraffic: boolToPtr(false),
 	}
 
 	environmentUpdate, err := skytap.Environments.Update(context.Background(), "456", opts)
@@ -374,6 +377,172 @@ func TestCompareEnvironmentUpdateFalse(t *testing.T) {
 	assert.Equal(t, "environment not ready", message)
 }
 
+func TestCreateEnvironmentRequestToV1Request(t *testing.T) {
+	cases := []struct {
+		input         *CreateEnvironmentRequest
+		expected      *createEnvironmentRequestV1
+		expectedError error
+	}{
+		{
+			input:    &CreateEnvironmentRequest{},
+			expected: &createEnvironmentRequestV1{},
+		},
+		{
+			input: &CreateEnvironmentRequest{
+				TemplateID:      strToPtr("12345"),
+				ProjectID:       intToPtr(12345),
+				Name:            strToPtr("name"),
+				Description:     strToPtr("test environment"),
+				Owner:           strToPtr("owner"),
+				DisableInternet: boolToPtr(true),
+				Routable:        boolToPtr(true),
+				SuspendOnIdle:   intToPtr(1),
+				SuspendAtTime:   strToPtr("suspend_time"),
+				ShutdownOnIdle:  intToPtr(2),
+				ShutdownAtTime:  strToPtr("shutdown_time"),
+				Tags: []*CreateTagRequest{
+					{Tag: "tag1"},
+				},
+				UserData: strToPtr("userdata"),
+				Labels: []*CreateLabelRequest{
+					{Category: strToPtr("foo"), Value: strToPtr("bar")},
+					{Category: strToPtr("foozz"), Value: strToPtr("barzz")},
+				},
+			},
+			expected: &createEnvironmentRequestV1{
+				TemplateID:      strToPtr("12345"),
+				ProjectID:       intToPtr(12345),
+				Name:            strToPtr("name"),
+				Description:     strToPtr("test environment"),
+				Owner:           strToPtr("owner"),
+				DisableInternet: boolToPtr(true),
+				Routable:        boolToPtr(true),
+				SuspendOnIdle:   intToPtr(1),
+				SuspendAtTime:   strToPtr("suspend_time"),
+				ShutdownOnIdle:  intToPtr(2),
+				ShutdownAtTime:  strToPtr("shutdown_time"),
+				Tags: []*CreateTagRequest{
+					{Tag: "tag1"},
+				},
+				UserData: strToPtr("userdata"),
+				Labels: []*CreateLabelRequest{
+					{Category: strToPtr("foo"), Value: strToPtr("bar")},
+					{Category: strToPtr("foozz"), Value: strToPtr("barzz")},
+				},
+			},
+		},
+		{
+			input: &CreateEnvironmentRequest{
+				OutboundTraffic: boolToPtr(true),
+			},
+			expected: &createEnvironmentRequestV1{
+				DisableInternet: boolToPtr(true),
+			},
+		},
+		{
+			input: &CreateEnvironmentRequest{
+				OutboundTraffic: boolToPtr(true),
+			},
+			expected: &createEnvironmentRequestV1{
+				DisableInternet: boolToPtr(true),
+			},
+		},
+		{
+			input: &CreateEnvironmentRequest{
+				OutboundTraffic: boolToPtr(true),
+				DisableInternet: boolToPtr(true),
+			},
+			expectedError: fmt.Errorf("OutboundTraffic and DisableInternet cannot be used together"),
+		},
+	}
+
+	for _, tc := range cases {
+		actual, err := tc.input.toV1Request()
+		if tc.expectedError != nil {
+			assert.Equal(t, tc.expectedError, err)
+		} else {
+			assert.NoError(t, err)
+		}
+
+		if !reflect.DeepEqual(tc.expected, actual) {
+			t.Fatalf("expected: %v, got: %v", tc.expected, actual)
+		}
+	}
+}
+
+func TestUpdateEnvironmentRequestToV1Request(t *testing.T) {
+	cases := []struct {
+		input         *UpdateEnvironmentRequest
+		expected      *updateEnvironmentRequestV1
+		expectedError error
+	}{
+		{
+			input:    &UpdateEnvironmentRequest{},
+			expected: &updateEnvironmentRequestV1{},
+		},
+		{
+			input: &UpdateEnvironmentRequest{
+				Name:            strToPtr("name"),
+				Description:     strToPtr("test environment"),
+				Owner:           strToPtr("owner"),
+				DisableInternet: boolToPtr(true),
+				Routable:        boolToPtr(true),
+				SuspendOnIdle:   intToPtr(1),
+				SuspendAtTime:   strToPtr("suspend_time"),
+				ShutdownOnIdle:  intToPtr(2),
+				ShutdownAtTime:  strToPtr("shutdown_time"),
+			},
+			expected: &updateEnvironmentRequestV1{
+				Name:            strToPtr("name"),
+				Description:     strToPtr("test environment"),
+				Owner:           strToPtr("owner"),
+				DisableInternet: boolToPtr(true),
+				Routable:        boolToPtr(true),
+				SuspendOnIdle:   intToPtr(1),
+				SuspendAtTime:   strToPtr("suspend_time"),
+				ShutdownOnIdle:  intToPtr(2),
+				ShutdownAtTime:  strToPtr("shutdown_time"),
+			},
+		},
+		{
+			input: &UpdateEnvironmentRequest{
+				OutboundTraffic: boolToPtr(true),
+			},
+			expected: &updateEnvironmentRequestV1{
+				DisableInternet: boolToPtr(true),
+			},
+		},
+		{
+			input: &UpdateEnvironmentRequest{
+				OutboundTraffic: boolToPtr(true),
+			},
+			expected: &updateEnvironmentRequestV1{
+				DisableInternet: boolToPtr(true),
+			},
+		},
+		{
+			input: &UpdateEnvironmentRequest{
+				OutboundTraffic: boolToPtr(true),
+				DisableInternet: boolToPtr(true),
+			},
+			expectedError: fmt.Errorf("OutboundTraffic and DisableInternet cannot be used together"),
+		},
+	}
+
+	for _, tc := range cases {
+		actual, err := tc.input.toV1Request()
+		if tc.expectedError != nil {
+			assert.Equal(t, tc.expectedError, err)
+		} else {
+			assert.NoError(t, err)
+		}
+
+		if !reflect.DeepEqual(tc.expected, actual) {
+			t.Fatalf("expected: %v, got: %v", tc.expected, actual)
+		}
+	}
+}
+
 func TestConfirmNilRoutableAlwaysFalse(t *testing.T) {
 	var environment Environment
 	err := json.Unmarshal(readTestFile(t, "exampleEnvironment.json"), &environment)
@@ -414,7 +583,7 @@ func TestConfirmCreateEnvironmentCreateTags(t *testing.T) {
 		if req.URL.Path == "/v2/configurations/456" && req.Method == "GET" { // get
 			io.WriteString(rw, string(readTestFile(t, "exampleEnvironment.json")))
 		}
-		if req.URL.Path == "/v2/configurations/456" && req.Method == "PUT" {
+		if req.URL.Path == "/configurations/456" && req.Method == "PUT" {
 			io.WriteString(rw, string(readTestFile(t, "exampleEnvironment.json")))
 			environmentUpdated = true
 		}
@@ -517,7 +686,7 @@ func TestConfirmCreateEnvironmentCreateUserData(t *testing.T) {
 		if req.URL.Path == "/v2/configurations/456" && req.Method == "GET" { // get
 			io.WriteString(rw, string(readTestFile(t, "exampleEnvironment.json")))
 		}
-		if req.URL.Path == "/v2/configurations/456" && req.Method == "PUT" {
+		if req.URL.Path == "/configurations/456" && req.Method == "PUT" {
 			io.WriteString(rw, string(readTestFile(t, "exampleEnvironment.json")))
 			environmentUpdated = true
 		}
@@ -603,7 +772,7 @@ func TestConfirmCreateEnvironmentCreateLabels(t *testing.T) {
 		if req.URL.Path == "/v2/configurations/456" && req.Method == "GET" { // get
 			io.WriteString(rw, string(readTestFile(t, "exampleEnvironment.json")))
 		}
-		if req.URL.Path == "/v2/configurations/456" && req.Method == "PUT" {
+		if req.URL.Path == "/configurations/456" && req.Method == "PUT" {
 			io.WriteString(rw, string(readTestFile(t, "exampleEnvironment.json")))
 			environmentUpdated = true
 		}
