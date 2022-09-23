@@ -86,6 +86,17 @@ func TestCreateEnvironment(t *testing.T) {
 			assert.Nil(t, err)
 			_, err = io.WriteString(rw, string(b))
 			assert.NoError(t, err)
+		} else if requestCounter == 6 {
+			assert.Equal(t, "/v2/configurations/456", req.URL.Path, "Bad path")
+			assert.Equal(t, http.MethodGet, req.Method, "Bad method")
+
+			var envRunning Environment
+			err := json.Unmarshal(readTestFile(t, "exampleEnvironment.json"), &envRunning)
+			assert.NoError(t, err)
+			b, err := json.Marshal(&envRunning)
+			assert.Nil(t, err)
+			_, err = io.WriteString(rw, string(b))
+			assert.NoError(t, err)
 		}
 		requestCounter++
 	}
@@ -104,10 +115,12 @@ func TestCreateEnvironment(t *testing.T) {
 	var environmentExpected Environment
 
 	err = json.Unmarshal(readTestFile(t, "exampleEnvironment.json"), &environmentExpected)
+	// loading from exampleEnvironment.json doesn't load the user_data
+	environmentExpected.UserData = strToPtr("")
 
 	assert.Equal(t, environmentExpected, *environment)
 
-	assert.Equal(t, 6, requestCounter)
+	assert.Equal(t, 7, requestCounter)
 }
 
 func TestReadEnvironment(t *testing.T) {
@@ -179,7 +192,7 @@ func TestUpdateEnvironment(t *testing.T) {
 			assert.Nil(t, err)
 			_, err = io.WriteString(rw, string(b))
 			assert.NoError(t, err)
-		} else if requestCounter == 2 {
+		} else if requestCounter == 2 || requestCounter == 3 {
 			assert.Equal(t, "/v2/configurations/456", req.URL.Path, "Bad path")
 			assert.Equal(t, http.MethodGet, req.Method, "Bad method")
 
@@ -201,10 +214,13 @@ func TestUpdateEnvironment(t *testing.T) {
 
 	environmentUpdate, err := skytap.Environments.Update(context.Background(), "456", opts)
 
+	// loading from exampleEnvironment.json doesn't load the user_data
+	environment.UserData = strToPtr("")
+
 	assert.Nil(t, err)
 	assert.Equal(t, environment, *environmentUpdate)
 
-	assert.Equal(t, 3, requestCounter)
+	assert.Equal(t, 4, requestCounter)
 }
 
 func TestDeleteEnvironment(t *testing.T) {

@@ -397,7 +397,13 @@ func (s *EnvironmentsServiceClient) Update(ctx context.Context, id string, updat
 		return nil, err
 	}
 
-	return &environment, nil
+	// return the updated environment
+	env, err := s.Get(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return env, nil
 }
 
 // Delete an environment
