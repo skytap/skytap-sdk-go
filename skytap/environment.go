@@ -80,6 +80,7 @@ type Environment struct {
 	PublishSetCount         *int                 `json:"publish_set_count"`
 	ScheduleCount           *int                 `json:"schedule_count"`
 	VpnCount                *int                 `json:"vpn_count"`
+	DisableInternet         *bool                `json:"disable_internet"`
 	OutboundTraffic         *bool                `json:"outbound_traffic"`
 	Routable                *bool                `json:"routable"`
 	VMs                     []VM                 `json:"vms"`
@@ -178,11 +179,12 @@ type userData struct {
 
 // CreateEnvironmentRequest describes the create the environment data
 type CreateEnvironmentRequest struct {
-	TemplateID      *string               `json:"template_id,omitempty"`
-	ProjectID       *int                  `json:"project_id,omitempty"`
-	Name            *string               `json:"name,omitempty"`
-	Description     *string               `json:"description,omitempty"`
-	Owner           *string               `json:"owner,omitempty"`
+	TemplateID  *string `json:"template_id,omitempty"`
+	ProjectID   *int    `json:"project_id,omitempty"`
+	Name        *string `json:"name,omitempty"`
+	Description *string `json:"description,omitempty"`
+	Owner       *string `json:"owner,omitempty"`
+	// Deprecated field, use DisableInternet instead
 	OutboundTraffic *bool                 `json:"outbound_traffic,omitempty"`
 	DisableInternet *bool                 `json:"disable_internet,omitempty"`
 	Routable        *bool                 `json:"routable,omitempty"`
@@ -214,9 +216,10 @@ type createEnvironmentRequestV1 struct {
 
 // UpdateEnvironmentRequest describes the update the environment data
 type UpdateEnvironmentRequest struct {
-	Name            *string              `json:"name,omitempty"`
-	Description     *string              `json:"description,omitempty"`
-	Owner           *string              `json:"owner,omitempty"`
+	Name        *string `json:"name,omitempty"`
+	Description *string `json:"description,omitempty"`
+	Owner       *string `json:"owner,omitempty"`
+	// Deprecated field, use DisableInternet instead
 	OutboundTraffic *bool                `json:"outbound_traffic,omitempty"`
 	DisableInternet *bool                `json:"disable_internet,omitempty"`
 	Routable        *bool                `json:"routable,omitempty"`
@@ -593,6 +596,9 @@ func (payload *UpdateEnvironmentRequest) buildComparison(env *Environment) Updat
 	if payload.Owner != nil {
 		actual.Owner = env.OwnerName
 	}
+	if payload.DisableInternet != nil {
+		actual.DisableInternet = env.DisableInternet
+	}
 	if payload.OutboundTraffic != nil {
 		actual.OutboundTraffic = env.OutboundTraffic
 	}
@@ -621,6 +627,7 @@ func (payload *UpdateEnvironmentRequest) string() string {
 	name := ""
 	description := ""
 	owner := ""
+	disableInternet := ""
 	outboundTraffic := ""
 	routable := "false"
 	suspendOnIdle := ""
@@ -637,6 +644,9 @@ func (payload *UpdateEnvironmentRequest) string() string {
 	}
 	if payload.Owner != nil {
 		owner = *payload.Owner
+	}
+	if payload.DisableInternet != nil {
+		disableInternet = fmt.Sprintf("%t", *payload.DisableInternet)
 	}
 	if payload.OutboundTraffic != nil {
 		outboundTraffic = fmt.Sprintf("%t", *payload.OutboundTraffic)
@@ -663,6 +673,7 @@ func (payload *UpdateEnvironmentRequest) string() string {
 	sb.WriteString(name)
 	sb.WriteString(description)
 	sb.WriteString(owner)
+	sb.WriteString(disableInternet)
 	sb.WriteString(outboundTraffic)
 	sb.WriteString(routable)
 	sb.WriteString(suspendOnIdle)
