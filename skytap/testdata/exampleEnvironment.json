@@ -78,6 +78,7 @@
       "123454"
     ]
   },
+  "disable_internet": true,
   "sequencing_enabled": false,
   "note_count": 1,
   "project_count_for_user": 0,
